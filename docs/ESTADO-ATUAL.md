@@ -22,6 +22,7 @@ A casca é um projeto-base pronto para clonar a cada produto novo. Entrega **aut
 | Testes do frontend | **24 de 24 aprovados** (5 arquivos) |
 | Build do backend / frontend | OK / OK (sem avisos) |
 | Teste ponta a ponta no navegador | Realizado (cadastro → confirmação por e-mail → login → recarregar → MFA → logout) |
+| **CI no GitHub Actions** | **Verde** (4 jobs: backend com testes em SQL Server real + Trivy no JAR; frontend; scripts SQL; imagens Docker + Trivy). Repositório: `jaasielsilva/GENERICO` (privado) |
 | Vulnerabilidades HIGH/CRITICAL | **0** no JAR, nas imagens e no `npm` — com **3 exceções documentadas** (§11) |
 | Pronto para produção? | **Não sozinho.** É uma base segura para construir o produto; o checklist de lançamento (`docs/product/launch-checklist.md`) lista o que depende do seu ambiente (HTTPS real, segredos em cofre, SMTP, backup etc.) |
 
@@ -134,7 +135,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 | 5. HTTPS / HSTS | ✅ Implementado; verificado com certificado autoassinado. Certificado **real** é responsabilidade do seu ambiente |
 | 6. Banco com usuário de menor privilégio | ✅ Implementado e verificado. `trustServerCertificate` permanece `true` **apenas** no Docker local; produção exige certificado válido (checklist) |
 | 7. Auditoria de eventos | ✅ Implementada e testada |
-| 8. Varredura de dependências no CI | ✅ Implementada (Trivy JAR/imagens, `npm audit`, Dependabot); executada localmente — o workflow do GitHub ainda não foi executado no GitHub (§13) |
+| 8. Varredura de dependências no CI | ✅ Implementada (Trivy JAR/imagens, `npm audit`, Dependabot) e **executada com sucesso no GitHub Actions**. (As duas primeiras execuções falharam por um erro do instalador da *action* do Trivy — não por vulnerabilidade; trocado pelo contêiner oficial do Trivy, na versão validada localmente) |
 | 9. Multi-tenancy | ✅ Implementado, testado e com um achado real corrigido |
 
 ---
@@ -260,7 +261,8 @@ Comandos reproduzíveis estão no `CLAUDE.md`/CI. Resultado final: **0 HIGH/CRIT
 - **Aplicativo autenticador real** (Google/Microsoft Authenticator no celular): o TOTP foi validado pelos vetores da RFC 6238 e por um gerador independente, não por um app real.
 - **E-mail real**: só Mailpit (SMTP de testes). Entregabilidade, SPF/DKIM/DMARC e provedores reais não foram testados.
 - **HTTPS no navegador**: validado com `curl` e certificado autoassinado; o navegador não foi usado nesse modo.
-- **Workflow do GitHub Actions**: o YAML foi validado e cada etapa foi reproduzida localmente (testes, Trivy, `npm audit`, validação dos scripts), mas **o CI ainda não foi executado no GitHub** (o repositório remoto está sendo criado agora).
+- **Execução agendada do CI** (toda segunda, 09:00 UTC): configurada, mas ainda não houve uma execução agendada. O Trivy do CI usa a versão fixa 0.58.0 (precisa ser atualizada manualmente de tempos em tempos).
+- **Proteção de branch** no GitHub (exigir CI verde antes de mesclar): não configurada.
 - **`HousekeepingJob`** (limpeza diária): sem teste automatizado.
 - **Frontend**: sem testes automatizados para as telas *esqueci/redefinir senha*, *confirmar e-mail* e *Segurança* (o fluxo foi exercitado manualmente no navegador).
 - **Carga/desempenho**, **teste de intrusão** e **revisão de segurança independente**: não realizados.
@@ -283,7 +285,7 @@ Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preenc
 
 ## 15. Próximos passos recomendados (ordem sugerida)
 
-1. Executar o CI no GitHub e corrigir o que aparecer; ligar proteção de branch exigindo CI verde.
+1. Ligar a proteção de branch no GitHub exigindo CI verde; atualizar a versão fixa do Trivy no `ci.yml` periodicamente.
 2. Planejar a migração para **Spring Boot 4** (remove as exceções do §11).
 3. Testar o MFA com um aplicativo real e o fluxo de e-mail com SMTP real.
 4. Decidir, por produto: cadastro aberto × convite; MFA obrigatório para `ADMIN`; criação de tenants.
