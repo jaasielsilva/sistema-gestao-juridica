@@ -1,0 +1,23 @@
+<div class="shell">
+  <app-header (menuToggle)="drawer.toggle()" />
+
+  <mat-sidenav-container class="shell__body">
+    <mat-sidenav
+      #drawer
+      class="shell__sidenav"
+      [mode]="isMobile() ? 'over' : 'side'"
+      [opened]="!isMobile()"
+      [attr.aria-label]="'Menu principal'"
+    >
+      <app-sidebar (navigated)="isMobile() && drawer.close()" />
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <main class="shell__content" id="conteudo">
+        <router-outlet />
+      </main>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+  <app-footer />
+</div>

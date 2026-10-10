@@ -1,0 +1,31 @@
+.header {
+  flex: 0 0 auto;
+  gap: 4px;
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  position: relative;
+  z-index: 2;
+}
+
+.header__title {
+  font: var(--mat-sys-title-medium);
+  margin-left: 8px;
+}
+
+.header__spacer {
+  flex: 1 1 auto;
+}
+
+.header__user {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 16px 12px;
+  max-width: 280px;
+
+  span {
+    font: var(--mat-sys-body-small);
+    color: var(--mat-sys-on-surface-variant);
+    overflow-wrap: anywhere;
+  }
+}
