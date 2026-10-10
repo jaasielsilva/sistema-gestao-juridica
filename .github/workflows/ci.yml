@@ -32,7 +32,7 @@ jobs:
       - name: Preparar JAR para varredura
         run: mkdir -p ../scan-jar && cp target/app.jar ../scan-jar/
       - name: Vulnerabilidades no JAR (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: rootfs
           scan-ref: scan-jar
@@ -85,7 +85,7 @@ jobs:
           docker build -t app-backend ./backend
           docker build -t app-frontend ./frontend
       - name: Vulnerabilidades na imagem do backend (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: app-backend
           scanners: vuln
@@ -94,7 +94,7 @@ jobs:
           exit-code: "1"
           trivyignores: .trivyignore.yaml
       - name: Vulnerabilidades na imagem do frontend (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: app-frontend
           scanners: vuln
