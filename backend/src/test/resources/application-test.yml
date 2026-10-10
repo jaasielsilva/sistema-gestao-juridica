@@ -1,0 +1,17 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: always
+      # Usa os scripts reais: se a entidade divergir do SQL, o ddl-auto=validate falha o teste.
+      schema-locations: file:../database/scripts/001_create_usuario.sql
+
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-123456
+    issuer: app-test
+    expiration-minutes: 5
+  cors:
+    allowed-origins: http://localhost:3000

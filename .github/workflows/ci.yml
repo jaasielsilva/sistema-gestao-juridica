@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # O runner do GitHub tem Docker: os testes de integracao (Testcontainers + SQL Server) rodam de verdade.
+      - name: Build e testes
+        run: mvn -B verify
+
+  database-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scripts numerados e sem GO
+        run: |
+          bad=$(ls database/scripts | grep -vE '^[0-9]{3}_[a-z0-9_]+\.sql$' || true)
+          [ -z "$bad" ] || { echo "Nome fora do padrao NNN_descricao.sql:"; echo "$bad"; exit 1; }
+          ! grep -liE '^\s*GO\s*$' database/scripts/*.sql || { echo "Scripts nao devem conter GO"; exit 1; }
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build da imagem do backend
+        run: docker build ./backend
