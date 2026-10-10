@@ -50,4 +50,24 @@ for file in $(ls "$SCRIPTS_DIR"/*.sql | sort); do
   run -d "$DB_NAME" -i "$file"
   query "INSERT INTO dbo.schema_version(script,checksum) VALUES('$name','$sum');" >/dev/null
 done
+
+# Usuario de runtime da aplicacao (permissoes minimas). A senha vem do ambiente e e validada
+# contra um conjunto seguro de caracteres, pois e interpolada pelo sqlcmd (-v).
+: "${APP_DB_USER:?APP_DB_USER e obrigatorio (usuario de runtime, ex.: app_runtime)}"
+: "${APP_DB_PASSWORD:?APP_DB_PASSWORD e obrigatorio}"
+[[ "$APP_DB_USER" =~ ^[A-Za-z_][A-Za-z0-9_]{2,63}$ ]] || { echo "APP_DB_USER invalido" >&2; exit 1; }
+[[ "$APP_DB_PASSWORD" =~ ^[A-Za-z0-9@#%^*_+=.!-]{12,128}$ ]] || {
+  echo "APP_DB_PASSWORD invalida: use 12+ caracteres entre letras, numeros e @#%^*_+=.!-" >&2; exit 1; }
+# Politica do SQL Server: 3 das 4 classes (maiuscula, minuscula, numero, simbolo).
+classes=0
+[[ "$APP_DB_PASSWORD" =~ [A-Z] ]] && classes=$((classes + 1))
+[[ "$APP_DB_PASSWORD" =~ [a-z] ]] && classes=$((classes + 1))
+[[ "$APP_DB_PASSWORD" =~ [0-9] ]] && classes=$((classes + 1))
+[[ "$APP_DB_PASSWORD" =~ [@#%^*_+=.!-] ]] && classes=$((classes + 1))
+[ "$classes" -ge 3 ] || {
+  echo "APP_DB_PASSWORD fraca: precisa misturar 3 de 4 tipos (maiuscula, minuscula, numero, simbolo @#%^*_+=.!-)" >&2; exit 1; }
+[ "$APP_DB_USER" != "$DB_USER" ] || { echo "APP_DB_USER nao pode ser o mesmo usuario administrativo" >&2; exit 1; }
+
+echo "* aplicando permissoes do usuario $APP_DB_USER"
+run -d "$DB_NAME" -v APP_DB_USER="$APP_DB_USER" APP_DB_PASSWORD="$APP_DB_PASSWORD" -i "$(dirname "$0")/post/grants.sql"
 echo "Banco em dia."

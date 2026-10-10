@@ -2,16 +2,30 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-  sql:
-    init:
-      mode: always
-      # Usa os scripts reais: se a entidade divergir do SQL, o ddl-auto=validate falha o teste.
-      schema-locations: file:../database/scripts/001_create_usuario.sql
 
 app:
+  base-url: http://localhost:3000
+  registration-enabled: true
   jwt:
     secret: test-secret-test-secret-test-secret-123456
     issuer: app-test
-    expiration-minutes: 5
+    access-minutes: 5
+  refresh:
+    days: 1
+    cookie-secure: false
+    reuse-grace-seconds: 0
+  throttle:
+    max-login-per-email: 5
+    # Limites por IP altos: todos os testes MockMvc compartilham 127.0.0.1.
+    max-login-per-ip: 1000
+    max-sensitive-per-ip: 1000
+    window-minutes: 15
+    lock-minutes: 15
+  mfa:
+    issuer: Teste
+    encryption-key: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
+  mail:
+    from: teste@localhost
+    log-body: false
   cors:
     allowed-origins: http://localhost:3000

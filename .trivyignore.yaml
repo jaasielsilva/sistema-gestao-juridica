@@ -1,0 +1,19 @@
+# Excecoes ACEITAS da varredura de vulnerabilidades (Trivy). Cada item precisa de justificativa e data de revisao.
+# Quando a data vence, a excecao deixa de valer e o CI volta a falhar: reavalie.
+vulnerabilities:
+  - id: CVE-2025-59250
+    statement: >-
+      Falso positivo: o projeto usa mssql-jdbc 12.10.2.jre11, que e exatamente a versao corrigida; o Trivy le a
+      versao do JAR sem o sufixo ".jre11" e nao reconhece.
+    expired_at: 2027-01-10
+  - id: CVE-2026-47884
+    statement: >-
+      spring-webmvc: so afeta aplicacoes que usam XsltView com mapeamento "/**" renderizando views. Esta API so
+      devolve JSON (nao ha views nem XSLT). Correcao so existe no Spring Framework 7 (Spring Boot 4); a linha 6.2
+      nao recebe mais patches. Plano: migrar para Spring Boot 4.
+    expired_at: 2027-01-10
+  - id: CVE-2026-47890
+    statement: >-
+      spring-webmvc: so afeta Server-Sent Events com view fragments. Esta API nao usa SSE nem views. Mesma
+      situacao da CVE-2026-47884: correcao apenas no Spring Framework 7.
+    expired_at: 2027-01-10

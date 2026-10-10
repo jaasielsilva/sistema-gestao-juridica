@@ -10,8 +10,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -22,6 +20,10 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Coluna comum (nao @TenantId): o login busca o usuario por e-mail ANTES de conhecer o tenant.
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
 
     @Column(nullable = false, length = 150)
     private String nome;
@@ -39,19 +41,31 @@ public class Usuario {
     @Column(nullable = false)
     private boolean ativo = true;
 
-    // Datas sempre em UTC (hibernate.jdbc.time_zone=UTC), coluna DATETIME2.
-    @JdbcTypeCode(SqlTypes.TIMESTAMP)
+    @Column(name = "email_verificado", nullable = false)
+    private boolean emailVerificado = false;
+
+    @Column(name = "mfa_ativo", nullable = false)
+    private boolean mfaAtivo = false;
+
+    /** Segredo TOTP criptografado (AES-GCM, base64). Nulo se MFA nunca foi configurado. */
+    @Column(name = "mfa_segredo", length = 255)
+    private String mfaSegredo;
+
+    /** Ultimo passo de tempo TOTP aceito: impede reutilizar o mesmo codigo (replay). */
+    @Column(name = "mfa_ultimo_passo")
+    private Long mfaUltimoPasso;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private Instant criadoEm;
 
-    @JdbcTypeCode(SqlTypes.TIMESTAMP)
     @Column(name = "atualizado_em", nullable = false)
     private Instant atualizadoEm;
 
     protected Usuario() {
     }
 
-    public Usuario(String nome, String email, String senhaHash, Papel papel) {
+    public Usuario(Long tenantId, String nome, String email, String senhaHash, Papel papel) {
+        this.tenantId = tenantId;
         this.nome = nome;
         this.email = email;
         this.senhaHash = senhaHash;
@@ -70,8 +84,41 @@ public class Usuario {
         this.atualizadoEm = Instant.now();
     }
 
+    public void definirSenhaHash(String novoHash) {
+        this.senhaHash = novoHash;
+    }
+
+    public void marcarEmailVerificado() {
+        this.emailVerificado = true;
+    }
+
+    public void iniciarConfiguracaoMfa(String segredoCriptografado) {
+        this.mfaSegredo = segredoCriptografado;
+        this.mfaAtivo = false;
+        this.mfaUltimoPasso = null;
+    }
+
+    public void ativarMfa(long passo) {
+        this.mfaAtivo = true;
+        this.mfaUltimoPasso = passo;
+    }
+
+    public void desativarMfa() {
+        this.mfaAtivo = false;
+        this.mfaSegredo = null;
+        this.mfaUltimoPasso = null;
+    }
+
+    public void registrarPassoMfa(long passo) {
+        this.mfaUltimoPasso = passo;
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public Long getTenantId() {
+        return tenantId;
     }
 
     public String getNome() {
@@ -92,6 +139,22 @@ public class Usuario {
 
     public boolean isAtivo() {
         return ativo;
+    }
+
+    public boolean isEmailVerificado() {
+        return emailVerificado;
+    }
+
+    public boolean isMfaAtivo() {
+        return mfaAtivo;
+    }
+
+    public String getMfaSegredo() {
+        return mfaSegredo;
+    }
+
+    public Long getMfaUltimoPasso() {
+        return mfaUltimoPasso;
     }
 
     public Instant getCriadoEm() {

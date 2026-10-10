@@ -1,24 +1,56 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { APP_CONFIG } from '../config/app-config';
 import { AuthService } from './auth.service';
 
-/** Anexa o Bearer nas chamadas a API e encerra a sessao se o servidor responder 401. */
+/** Endpoints em que um 401 significa "credencial/codigo invalido" ou "sem sessao", e nao "access token expirou". */
+const NO_REFRESH_ON_401 = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/mfa/verify',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+];
+
+/**
+ * - Marca toda chamada a API com X-Requested-With (exigido nos endpoints que usam o cookie de refresh: defesa CSRF).
+ * - Anexa o Bearer.
+ * - Se a API responder 401 (access token expirado/sessao revogada), tenta UMA renovacao pelo cookie e repete a
+ *   requisicao; se a renovacao falhar, encerra a sessao.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(APP_CONFIG.apiBase)) return next(req);
 
   const auth = inject(AuthService);
-  const token = auth.token;
-  const authed = token ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : req;
+  const skipRefresh = NO_REFRESH_ON_401.some((p) => req.url.endsWith(p));
 
-  return next(authed).pipe(
+  return next(decorate(req, auth.token)).pipe(
     catchError((err: unknown) => {
-      // 401 no proprio login e "credenciais invalidas", nao sessao expirada.
-      if (err instanceof HttpErrorResponse && err.status === 401 && !req.url.endsWith('/auth/login')) {
-        auth.logout();
+      if (!(err instanceof HttpErrorResponse) || err.status !== 401 || skipRefresh) {
+        return throwError(() => err);
       }
-      return throwError(() => err);
+      return auth.refresh().pipe(
+        switchMap((token) => retry(req, token, next)),
+        catchError((refreshErr: unknown) => {
+          auth.clearLocal();
+          return throwError(() => refreshErr);
+        }),
+      );
     }),
   );
 };
+
+function decorate(req: HttpRequest<unknown>, token: string | null): HttpRequest<unknown> {
+  const headers: Record<string, string> = { 'X-Requested-With': 'XMLHttpRequest' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return req.clone({ setHeaders: headers });
+}
+
+function retry(req: HttpRequest<unknown>, token: string, next: HttpHandlerFn) {
+  return next(decorate(req, token));
+}

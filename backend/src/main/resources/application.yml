@@ -14,8 +14,21 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+        type:
+          # Instant <-> DATETIME2 (padrao do Hibernate 6 seria DATETIMEOFFSET).
+          preferred_instant_jdbc_type: TIMESTAMP
+  # E-mail via SMTP: defina SPRING_MAIL_HOST (e PORT/USERNAME/PASSWORD). Sem host, os e-mails nao saem
+  # (LoggingEmailSender registra so destinatario e assunto).
+
+logging:
+  level:
+    # Aviso inofensivo sobre a configuracao preferred_instant_jdbc_type.
+    org.hibernate.orm.incubating: ERROR
 
 server:
+  # "native": o Tomcat confia em X-Forwarded-* apenas de proxies internos (rede privada/Docker).
+  # Use FORWARD_HEADERS_STRATEGY=native atras de nginx/load balancer, para IP real e HTTPS corretos.
+  forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
   error:
     include-message: never
     include-stacktrace: never
@@ -28,11 +41,34 @@ management:
         include: health,info
 
 app:
+  # URL publica do frontend, usada nos links enviados por e-mail.
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+  # Seguro por padrao: cadastro aberto precisa ser ligado explicitamente.
+  registration-enabled: ${REGISTRATION_ENABLED:false}
   jwt:
     # Obrigatorio, minimo 32 caracteres. Nunca versionar o valor real.
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:app}
-    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+    access-minutes: ${JWT_ACCESS_MINUTES:15}
+  refresh:
+    days: ${REFRESH_DAYS:7}
+    # Cookie Secure exige HTTPS (localhost e excecao nos navegadores modernos). Em producao: true.
+    cookie-secure: ${COOKIE_SECURE:true}
+    # Tolerancia para duas abas renovarem juntas com o mesmo cookie. Alem disso, reuso = roubo = sessao revogada.
+    reuse-grace-seconds: ${REFRESH_REUSE_GRACE_SECONDS:10}
+  throttle:
+    max-login-per-email: ${THROTTLE_LOGIN_PER_EMAIL:5}
+    max-login-per-ip: ${THROTTLE_LOGIN_PER_IP:30}
+    max-sensitive-per-ip: ${THROTTLE_SENSITIVE_PER_IP:10}
+    window-minutes: ${THROTTLE_WINDOW_MINUTES:15}
+    lock-minutes: ${THROTTLE_LOCK_MINUTES:15}
+  mfa:
+    issuer: ${MFA_ISSUER:Casca Generica}
+    # Chave AES-256 em base64 (32 bytes). Gere com: openssl rand -base64 32
+    encryption-key: ${MFA_ENCRYPTION_KEY}
+  mail:
+    from: ${MAIL_FROM:no-reply@localhost}
+    log-body: ${MAIL_LOG_BODY:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 

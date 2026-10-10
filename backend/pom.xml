@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -20,7 +20,12 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <springdoc.version>2.6.0</springdoc.version>
+        <springdoc.version>2.8.9</springdoc.version>
+        <!-- Corrige CVE-2025-59250 (versao gerenciada pelo Boot era 12.6.4) -->
+        <mssql-jdbc.version>12.10.2.jre11</mssql-jdbc.version>
+        <!-- Correcoes de seguranca adiantadas em relacao ao BOM do Boot (varredura do JAR com Trivy; revisar a cada upgrade) -->
+        <jackson-bom.version>2.21.7</jackson-bom.version>
+        <tomcat.version>10.1.60</tomcat.version>
         <!-- Docker 29+ exige API recente; o 1.19.x do Spring Boot 3.3 nao conecta -->
         <testcontainers.version>1.21.3</testcontainers.version>
         <!-- Versao da API Docker usada pelo cliente do Testcontainers (Docker 29+ rejeita a antiga) -->
@@ -47,6 +52,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
         <dependency>

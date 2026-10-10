@@ -3,6 +3,7 @@ import { authGuard, guestGuard } from './core/auth/auth.guards';
 import { Shell } from './layout/shell/shell';
 
 export const routes: Routes = [
+  // ---- Telas publicas de autenticacao ----
   {
     path: 'login',
     title: 'Entrar',
@@ -10,7 +11,29 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login/login').then((m) => m.Login),
   },
   {
-    // Area logada: layout com cabecalho, menu lateral e rodape. Novas telas entram como children.
+    path: 'cadastro',
+    title: 'Criar conta',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/register/register').then((m) => m.Register),
+  },
+  {
+    path: 'esqueci-senha',
+    title: 'Esqueci minha senha',
+    loadComponent: () => import('./features/auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'redefinir-senha',
+    title: 'Redefinir senha',
+    loadComponent: () => import('./features/auth/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
+    path: 'verificar-email',
+    title: 'Confirmar e-mail',
+    loadComponent: () => import('./features/auth/verify-email/verify-email').then((m) => m.VerifyEmail),
+  },
+
+  // ---- Area logada: layout com cabecalho, menu lateral e rodape. Novas telas entram como children. ----
+  {
     path: '',
     component: Shell,
     canActivate: [authGuard],
@@ -20,6 +43,11 @@ export const routes: Routes = [
         path: 'inicio',
         title: 'Início',
         loadComponent: () => import('./features/home/home').then((m) => m.Home),
+      },
+      {
+        path: 'seguranca',
+        title: 'Segurança',
+        loadComponent: () => import('./features/account/security/security').then((m) => m.Security),
       },
       {
         path: '**',

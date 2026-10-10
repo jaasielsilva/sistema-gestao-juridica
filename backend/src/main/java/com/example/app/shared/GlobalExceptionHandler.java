@@ -21,7 +21,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiError> business(BusinessException ex) {
         HttpStatus status = ex.getStatus();
-        return build(status, ex.getMessage(), List.of());
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
+        if (ex instanceof TooManyRequestsException tooMany) {
+            response.header("Retry-After", String.valueOf(tooMany.getRetryAfterSeconds()));
+        }
+        return response.body(new ApiError(java.time.Instant.now(), status.value(), status.getReasonPhrase(),
+                ex.getMessage(), MDC.get(CorrelationIdFilter.MDC_KEY), List.of()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -40,6 +45,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> denied(AccessDeniedException ex) {
         return build(HttpStatus.FORBIDDEN, "Acesso negado", List.of());
+    }
+
+    @ExceptionHandler(com.example.app.tenant.TenantViolationException.class)
+    public ResponseEntity<ApiError> crossTenant(com.example.app.tenant.TenantViolationException ex) {
+        // Rede de seguranca: loga como erro (sinal de bug ou ataque) e responde como se o recurso nao existisse.
+        log.error("{}", ex.getMessage());
+        return build(HttpStatus.NOT_FOUND, "Recurso nao encontrado", List.of());
     }
 
     @ExceptionHandler(Exception.class)

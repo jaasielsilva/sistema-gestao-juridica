@@ -12,5 +12,6 @@ export interface NavItem {
 /** Menu lateral. Cada produto novo adiciona seus itens aqui. */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Início', icon: 'home', route: '/inicio' },
+  { label: 'Segurança', icon: 'security', route: '/seguranca' },
   // Exemplo: { label: 'Usuários', icon: 'group', route: '/usuarios', roles: ['ADMIN'] },
 ];

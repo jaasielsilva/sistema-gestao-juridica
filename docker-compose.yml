@@ -1,5 +1,6 @@
-# Ambiente local: SQL Server + aplicacao de scripts + backend.
+# Ambiente local: SQL Server + aplicacao de scripts + backend + frontend + caixa de e-mail de testes (Mailpit).
 # Uso: copie .env.example para .env, ajuste os valores e rode `docker compose up --build`.
+# Todas as portas publicadas ficam presas a 127.0.0.1 (so este computador acessa).
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -7,7 +8,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
     ports:
-      - "1433:1433"
+      - "127.0.0.1:1433:1433"
     volumes:
       - dbdata:/var/opt/mssql
     healthcheck:
@@ -16,6 +17,7 @@ services:
       timeout: 5s
       retries: 20
 
+  # Aplica database/scripts (como administrador) e cria o usuario de runtime com permissoes minimas.
   db-scripts:
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
@@ -27,30 +29,49 @@ services:
       DB_NAME: ${DB_NAME:-appdb}
       DB_USER: sa
       DB_PASSWORD: ${DB_PASSWORD}
+      APP_DB_USER: ${APP_DB_USER:-app_runtime}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
     volumes:
       - ./database:/database:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "127.0.0.1:8025:8025" # caixa de entrada de testes: http://localhost:8025
 
   backend:
     build: ./backend
     depends_on:
       db-scripts:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
     environment:
-      DB_URL: jdbc:sqlserver://db:1433;databaseName=${DB_NAME:-appdb};encrypt=true;trustServerCertificate=true
-      DB_USER: sa
-      DB_PASSWORD: ${DB_PASSWORD}
+      # A aplicacao usa o usuario de runtime (sem DDL), NUNCA o sa.
+      # TRUST_SERVER_CERT=true so porque o SQL Server do Docker usa certificado autoassinado. Em producao: false.
+      DB_URL: jdbc:sqlserver://db:1433;databaseName=${DB_NAME:-appdb};encrypt=true;trustServerCertificate=${DB_TRUST_SERVER_CERT:-true}
+      DB_USER: ${APP_DB_USER:-app_runtime}
+      DB_PASSWORD: ${APP_DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (minimo 32 caracteres)}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?defina MFA_ENCRYPTION_KEY no .env (openssl rand -base64 32)}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-true}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FORWARD_HEADERS_STRATEGY: native
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      SPRING_MAIL_HOST: mailpit
+      SPRING_MAIL_PORT: "1025"
+      MAIL_FROM: ${MAIL_FROM:-no-reply@casca.local}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
   frontend:
     build: ./frontend
     depends_on:
       - backend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
 
 volumes:
   dbdata:

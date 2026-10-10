@@ -1,5 +1,6 @@
 package com.example.app.security;
 
+import com.example.app.auth.session.SessaoRepository;
 import com.example.app.shared.ApiError;
 import com.example.app.shared.CorrelationIdFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,15 +32,29 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /** Endpoints publicos de autenticacao (todos POST, exceto /config). Qualquer outra rota exige login. */
+    private static final String[] PUBLIC_POST = {
+            "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout",
+            "/api/v1/auth/mfa/verify", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+            "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification"
+    };
+
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, ObjectMapper mapper) throws Exception {
+    SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, SessaoRepository sessoes,
+                                    ObjectMapper mapper) throws Exception {
         http
-                // API stateless com Bearer token: sem sessao e sem cookie, logo CSRF nao se aplica.
+                // Access token vai no header Authorization (nao em cookie) => sem CSRF nessas rotas.
+                // Os endpoints que usam o cookie de refresh exigem X-Requested-With e o cookie e SameSite=Strict.
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(h -> h
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(63_072_000))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/config").permitAll()
                         .requestMatchers("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
@@ -47,7 +63,7 @@ public class SecurityConfig {
                                 write(res, mapper, HttpStatus.UNAUTHORIZED, "Nao autenticado"))
                         .accessDeniedHandler((req, res, ex) ->
                                 write(res, mapper, HttpStatus.FORBIDDEN, "Acesso negado")))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, sessoes), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -61,8 +77,8 @@ public class SecurityConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(origins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", CorrelationIdFilter.HEADER));
-        cfg.setExposedHeaders(List.of(CorrelationIdFilter.HEADER));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", CorrelationIdFilter.HEADER));
+        cfg.setExposedHeaders(List.of(CorrelationIdFilter.HEADER, "Retry-After"));
         cfg.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);

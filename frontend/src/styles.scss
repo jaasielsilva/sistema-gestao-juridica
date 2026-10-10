@@ -25,8 +25,55 @@ body {
   height: 100%;
 }
 
-// Padroes globais reutilizados pelas telas.
+// ---- Padroes globais reutilizados pelas telas ----
 .page-title {
   font: var(--mat-sys-headline-medium);
   margin: 0 0 16px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 24px;
+}
+
+.form-error,
+.form-success {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font: var(--mat-sys-body-medium);
+}
+
+.form-error {
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.form-success {
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+}
+
+.form-submit {
+  height: 48px;
+}
+
+.form-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 16px;
+  font: var(--mat-sys-body-small);
+
+  a {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.hint {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
 }

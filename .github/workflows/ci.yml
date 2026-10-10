@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Roda toda segunda mesmo sem commits: novas vulnerabilidades (CVEs) aparecem a qualquer momento.
+  schedule:
+    - cron: "0 9 * * 1"
 
 permissions:
   contents: read
@@ -24,6 +27,19 @@ jobs:
       # O runner do GitHub tem Docker: os testes de integracao (Testcontainers + SQL Server) rodam de verdade.
       - name: Build e testes
         run: mvn -B verify
+      # Varre o JAR final (todas as bibliotecas, inclusive as transitivas gerenciadas pelo Spring Boot).
+      # O pom.xml sozinho nao basta: as versoes vem do BOM do Boot.
+      - name: Preparar JAR para varredura
+        run: mkdir -p ../scan-jar && cp target/app.jar ../scan-jar/
+      - name: Vulnerabilidades no JAR (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: rootfs
+          scan-ref: scan-jar
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
 
   frontend:
     runs-on: ubuntu-latest
@@ -54,6 +70,11 @@ jobs:
           bad=$(ls database/scripts | grep -vE '^[0-9]{3}_[a-z0-9_]+\.sql$' || true)
           [ -z "$bad" ] || { echo "Nome fora do padrao NNN_descricao.sql:"; echo "$bad"; exit 1; }
           ! grep -liE '^\s*GO\s*$' database/scripts/*.sql || { echo "Scripts nao devem conter GO"; exit 1; }
+      - name: Numeracao sem buracos nem duplicatas
+        run: |
+          ls database/scripts | cut -c1-3 | sort | uniq -d | grep . && { echo "Numero de script duplicado"; exit 1; } || true
+          n=0; for f in $(ls database/scripts | cut -c1-3 | sort); do
+            [ "$((10#$f))" -eq "$n" ] || { echo "Falta o script numero $n (encontrado $f)"; exit 1; }; n=$((n+1)); done
 
   docker-build:
     runs-on: ubuntu-latest
@@ -61,5 +82,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build das imagens
         run: |
-          docker build ./backend
-          docker build ./frontend
+          docker build -t app-backend ./backend
+          docker build -t app-frontend ./frontend
+      - name: Vulnerabilidades na imagem do backend (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: app-backend
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml
+      - name: Vulnerabilidades na imagem do frontend (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: app-frontend
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          trivyignores: .trivyignore.yaml

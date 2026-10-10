@@ -1,0 +1,143 @@
+<h1 class="page-title">Segurança</h1>
+
+<div class="security">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Minha conta</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (auth.user(); as user) {
+        <dl class="security__facts">
+          <dt>Nome</dt>
+          <dd>{{ user.nome }}</dd>
+          <dt>E-mail</dt>
+          <dd>{{ user.email }} @if (user.emailVerificado) { <mat-icon class="ok" aria-label="verificado">verified</mat-icon> }</dd>
+          <dt>Perfil</dt>
+          <dd>{{ user.papel === 'ADMIN' ? 'Administrador' : 'Usuário' }}</dd>
+        </dl>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Verificação em duas etapas (MFA)</mat-card-title>
+      <mat-card-subtitle>
+        {{ auth.user()?.mfaAtivo ? 'Ativada' : 'Desativada' }} · aplicativo autenticador (Google Authenticator, Microsoft
+        Authenticator, Authy…)
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (recoveryCodes(); as codes) {
+        <div class="form-success" role="status">
+          <strong>MFA ativado!</strong> Guarde estes códigos de recuperação em um lugar seguro. Cada um vale uma vez e
+          <strong>não serão mostrados de novo</strong>.
+        </div>
+        <ul class="security__codes">
+          @for (code of codes; track code) {
+            <li>{{ code }}</li>
+          }
+        </ul>
+        <button mat-flat-button type="button" (click)="dismissRecoveryCodes()">Já guardei os códigos</button>
+      } @else if (auth.user()?.mfaAtivo) {
+        <form class="form-stack security__form" [formGroup]="disableForm" (ngSubmit)="disableMfa()" novalidate>
+          <p class="hint">Para desativar, confirme sua senha e um código do aplicativo (ou de recuperação).</p>
+          <mat-form-field appearance="outline">
+            <mat-label>Senha</mat-label>
+            <input matInput type="password" formControlName="senha" autocomplete="current-password" />
+            <mat-error>Informe a senha</mat-error>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Código</mat-label>
+            <input matInput formControlName="codigo" autocomplete="one-time-code" />
+            <mat-error>Informe o código</mat-error>
+          </mat-form-field>
+          @if (mfaError(); as message) {
+            <p class="form-error" role="alert">{{ message }}</p>
+          }
+          <button mat-stroked-button type="submit" [disabled]="mfaBusy()">Desativar MFA</button>
+        </form>
+      } @else if (setup(); as s) {
+        <div class="security__setup">
+          <p>1. Escaneie o QR code no aplicativo autenticador (ou digite a chave manualmente).</p>
+          @if (qrDataUrl(); as qr) {
+            <img [src]="qr" width="200" height="200" alt="QR code para configurar o MFA" />
+          }
+          <p class="hint">Chave manual: <code>{{ s.secret }}</code></p>
+          <form class="form-stack security__form" [formGroup]="enableForm" (ngSubmit)="enableMfa()" novalidate>
+            <p>2. Digite o código de 6 dígitos que o aplicativo mostrar para confirmar.</p>
+            <mat-form-field appearance="outline">
+              <mat-label>Código de 6 dígitos</mat-label>
+              <input matInput formControlName="codigo" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+              <mat-error>Informe os 6 dígitos</mat-error>
+            </mat-form-field>
+            @if (mfaError(); as message) {
+              <p class="form-error" role="alert">{{ message }}</p>
+            }
+            <div class="security__actions">
+              <button mat-flat-button type="submit" [disabled]="mfaBusy()">Ativar MFA</button>
+              <button mat-button type="button" (click)="cancelMfaSetup()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      } @else {
+        <p>Adicione uma segunda camada de proteção: além da senha, será pedido um código do seu celular.</p>
+        @if (mfaError(); as message) {
+          <p class="form-error" role="alert">{{ message }}</p>
+        }
+        <button mat-flat-button type="button" (click)="startMfa()" [disabled]="mfaBusy()">Configurar MFA</button>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Alterar senha</mat-card-title>
+      <mat-card-subtitle>Os outros dispositivos serão desconectados.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form class="form-stack security__form" [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+        <mat-form-field appearance="outline">
+          <mat-label>Senha atual</mat-label>
+          <input matInput type="password" formControlName="senhaAtual" autocomplete="current-password" />
+          <mat-error>Informe a senha atual</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Nova senha</mat-label>
+          <input matInput type="password" formControlName="novaSenha" autocomplete="new-password" />
+          <mat-hint>Mínimo de {{ passwordMin }} caracteres</mat-hint>
+          <mat-error>A senha precisa ter de {{ passwordMin }} a 72 caracteres</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Confirmar nova senha</mat-label>
+          <input matInput type="password" formControlName="confirmar" autocomplete="new-password" />
+          @if (passwordForm.hasError('mismatch') && passwordForm.controls.confirmar.touched) {
+            <mat-error>As senhas não conferem</mat-error>
+          } @else {
+            <mat-error>Repita a nova senha</mat-error>
+          }
+        </mat-form-field>
+        @if (pwdError(); as message) {
+          <p class="form-error" role="alert">{{ message }}</p>
+        }
+        @if (pwdDone(); as message) {
+          <p class="form-success" role="status">{{ message }}</p>
+        }
+        <button mat-flat-button type="submit" [disabled]="pwdBusy()">Alterar senha</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Dispositivos</mat-card-title>
+      <mat-card-subtitle>Encerra sua sessão em todos os navegadores e aparelhos, inclusive este.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      @if (devicesError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+      <button mat-stroked-button type="button" (click)="logoutAll()">Sair de todos os dispositivos</button>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,54 +1,86 @@
-<main class="login">
-  <mat-card class="login__card" appearance="outlined">
-    <mat-card-header>
-      <mat-card-title class="login__title">{{ appName }}</mat-card-title>
-      <mat-card-subtitle>Entre com sua conta</mat-card-subtitle>
-    </mat-card-header>
-
-    <mat-card-content>
-      <form class="login__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <mat-form-field appearance="outline">
-          <mat-label>E-mail</mat-label>
-          <input matInput type="email" formControlName="email" autocomplete="username" autofocus />
-          @if (form.controls.email.hasError('required')) {
-            <mat-error>Informe o e-mail</mat-error>
-          } @else if (form.controls.email.hasError('email')) {
-            <mat-error>E-mail inválido</mat-error>
-          }
-        </mat-form-field>
-
-        <mat-form-field appearance="outline">
-          <mat-label>Senha</mat-label>
-          <input
-            matInput
-            [type]="hidePassword() ? 'password' : 'text'"
-            formControlName="senha"
-            autocomplete="current-password"
-          />
-          <button
-            mat-icon-button
-            matSuffix
-            type="button"
-            [attr.aria-label]="hidePassword() ? 'Mostrar senha' : 'Ocultar senha'"
-            (click)="hidePassword.set(!hidePassword())"
-          >
-            <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
-          </button>
-          <mat-error>Informe a senha</mat-error>
-        </mat-form-field>
-
-        @if (error(); as message) {
-          <p class="login__error" role="alert">{{ message }}</p>
+<app-auth-page [subtitle]="mfaToken() ? 'Verificação em duas etapas' : 'Entre com sua conta'">
+  @if (!mfaToken()) {
+    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>E-mail</mat-label>
+        <input matInput type="email" formControlName="email" autocomplete="username" autofocus />
+        @if (form.controls.email.hasError('required')) {
+          <mat-error>Informe o e-mail</mat-error>
+        } @else if (form.controls.email.hasError('email')) {
+          <mat-error>E-mail inválido</mat-error>
         }
+      </mat-form-field>
 
-        <button mat-flat-button type="submit" class="login__submit" [disabled]="loading()">
-          @if (loading()) {
-            <mat-spinner diameter="20" />
-          } @else {
-            Entrar
-          }
+      <mat-form-field appearance="outline">
+        <mat-label>Senha</mat-label>
+        <input
+          matInput
+          [type]="hidePassword() ? 'password' : 'text'"
+          formControlName="senha"
+          autocomplete="current-password"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          [attr.aria-label]="hidePassword() ? 'Mostrar senha' : 'Ocultar senha'"
+          (click)="hidePassword.set(!hidePassword())"
+        >
+          <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
         </button>
-      </form>
-    </mat-card-content>
-  </mat-card>
-</main>
+        <mat-error>Informe a senha</mat-error>
+      </mat-form-field>
+
+      @if (error(); as message) {
+        <p class="form-error" role="alert">
+          {{ message }}
+          @if (needsVerification()) {
+            <button mat-button type="button" (click)="resendVerification()">Reenviar e-mail de confirmação</button>
+          }
+        </p>
+      }
+      @if (info(); as message) {
+        <p class="form-success" role="status">{{ message }}</p>
+      }
+
+      <button mat-flat-button type="submit" class="form-submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Entrar
+        }
+      </button>
+
+      <div class="form-links">
+        <a routerLink="/esqueci-senha">Esqueci minha senha</a>
+        @if (registrationEnabled()) {
+          <a routerLink="/cadastro">Criar conta</a>
+        }
+      </div>
+    </form>
+  } @else {
+    <form class="form-stack" [formGroup]="mfaForm" (ngSubmit)="submitMfa()" novalidate>
+      <p class="hint">
+        Digite o código de 6 dígitos do seu aplicativo autenticador, ou um código de recuperação.
+      </p>
+      <mat-form-field appearance="outline">
+        <mat-label>Código</mat-label>
+        <input matInput formControlName="codigo" autocomplete="one-time-code" inputmode="text" autofocus />
+        <mat-error>Informe o código</mat-error>
+      </mat-form-field>
+
+      @if (error(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+
+      <button mat-flat-button type="submit" class="form-submit" [disabled]="loading()">
+        @if (loading()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          Verificar
+        }
+      </button>
+      <button mat-button type="button" (click)="backToCredentials()">Voltar</button>
+    </form>
+  }
+</app-auth-page>

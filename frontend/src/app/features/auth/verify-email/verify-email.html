@@ -1,0 +1,19 @@
+<app-auth-page subtitle="Confirmação de e-mail">
+  <div class="form-stack">
+    @switch (state()) {
+      @case ('loading') {
+        <mat-spinner diameter="32" />
+        <p class="hint">Confirmando seu e-mail…</p>
+      }
+      @case ('ok') {
+        <p class="form-success" role="status">{{ message() }}</p>
+        <a mat-flat-button routerLink="/login" class="form-submit">Entrar</a>
+      }
+      @case ('error') {
+        <p class="form-error" role="alert">{{ message() }}</p>
+        <p class="hint">Tente entrar: a tela de login permite reenviar o e-mail de confirmação.</p>
+        <a mat-flat-button routerLink="/login" class="form-submit">Ir para o login</a>
+      }
+    }
+  </div>
+</app-auth-page>

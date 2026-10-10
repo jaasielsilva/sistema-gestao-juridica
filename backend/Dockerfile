@@ -7,6 +7,9 @@ COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -DskipTests package
 
 FROM eclipse-temurin:21-jre
+# Aplica correcoes de seguranca do sistema publicadas depois da imagem base.
+# Tambem remove o binario "pebble" da imagem base: esta aplicacao nao o usa (menos superficie de ataque).
+RUN apt-get update && apt-get -y upgrade && rm -rf /var/lib/apt/lists/* && rm -f /usr/bin/pebble
 RUN useradd --system --uid 10001 --no-create-home appuser
 WORKDIR /app
 COPY --from=build /build/target/app.jar app.jar
