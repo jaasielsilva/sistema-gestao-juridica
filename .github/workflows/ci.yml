@@ -31,15 +31,14 @@ jobs:
       # O pom.xml sozinho nao basta: as versoes vem do BOM do Boot.
       - name: Preparar JAR para varredura
         run: mkdir -p ../scan-jar && cp target/app.jar ../scan-jar/
+      # Trivy pelo contêiner oficial, na mesma versão validada localmente (determinístico; sem depender de instalador).
       - name: Vulnerabilidades no JAR (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          scan-type: rootfs
-          scan-ref: scan-jar
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          trivyignores: .trivyignore.yaml
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/scan-jar:/jar:ro" \
+            -v "${{ github.workspace }}/.trivyignore.yaml:/ignore.yaml:ro" \
+            aquasec/trivy:0.58.0 rootfs --no-progress --scanners vuln --severity HIGH,CRITICAL \
+            --ignorefile /ignore.yaml --exit-code 1 /jar
 
   frontend:
     runs-on: ubuntu-latest
@@ -84,21 +83,13 @@ jobs:
         run: |
           docker build -t app-backend ./backend
           docker build -t app-frontend ./frontend
-      - name: Vulnerabilidades na imagem do backend (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: app-backend
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-          trivyignores: .trivyignore.yaml
-      - name: Vulnerabilidades na imagem do frontend (Trivy)
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          image-ref: app-frontend
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-          trivyignores: .trivyignore.yaml
+      - name: Vulnerabilidades nas imagens (Trivy)
+        run: |
+          for img in app-backend app-frontend; do
+            echo "=== $img ==="
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "${{ github.workspace }}/.trivyignore.yaml:/ignore.yaml:ro" \
+              aquasec/trivy:0.58.0 image --no-progress --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed --ignorefile /ignore.yaml --exit-code 1 "$img"
+          done
