@@ -34,7 +34,8 @@ describe('Login', () => {
     await fixture.whenStable();
 
     http.expectNone('/api/v1/auth/login');
-    expect(el.textContent).toContain('Informe o e-mail');
+    // A validacao e nativa do navegador (balao "Preencha este campo"), igual ao SaaS Monitor.
+    expect(el.querySelector<HTMLInputElement>('input[type=email]')!.validity.valueMissing).toBe(true);
   });
 
   it('so mostra "Criar conta" quando o cadastro esta habilitado no servidor', async () => {

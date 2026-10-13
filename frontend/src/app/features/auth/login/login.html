@@ -1,35 +1,40 @@
 <app-auth-page [subtitle]="mfaToken() ? 'Verificação em duas etapas' : 'Entre com sua conta'">
   @if (!mfaToken()) {
-    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <mat-form-field appearance="outline">
-        <mat-label>E-mail</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="username" autofocus />
-        @if (form.controls.email.hasError('required')) {
-          <mat-error>Informe o e-mail</mat-error>
-        } @else if (form.controls.email.hasError('email')) {
-          <mat-error>E-mail inválido</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Senha</mat-label>
+    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" ngNativeValidate>
+      <div class="auth-field">
+        <label class="auth-label" for="email">E-mail</label>
         <input
-          matInput
-          [type]="hidePassword() ? 'password' : 'text'"
-          formControlName="senha"
-          autocomplete="current-password"
+          class="auth-input" required
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          placeholder="voce@empresa.com"
+          autofocus
         />
-        <button
-          mat-icon-button
-          matSuffix
-          type="button"
-          [attr.aria-label]="hidePassword() ? 'Mostrar senha' : 'Ocultar senha'"
-          (click)="hidePassword.set(!hidePassword())"
-        >
-          <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
-        </button>
-        <mat-error>Informe a senha</mat-error>
-      </mat-form-field>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label" for="senha">Senha</label>
+        <div class="auth-input-wrap">
+          <input
+            class="auth-input" required
+            id="senha"
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="senha"
+            autocomplete="current-password"
+            placeholder="••••••••"
+          />
+          <button
+            class="auth-toggle"
+            type="button"
+            [attr.aria-label]="hidePassword() ? 'Mostrar senha' : 'Ocultar senha'"
+            (click)="hidePassword.set(!hidePassword())"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+        </div>
+      </div>
 
       @if (error(); as message) {
         <p class="form-error" role="alert">
@@ -59,15 +64,21 @@
       </div>
     </form>
   } @else {
-    <form class="form-stack" [formGroup]="mfaForm" (ngSubmit)="submitMfa()" novalidate>
+    <form class="form-stack" [formGroup]="mfaForm" (ngSubmit)="submitMfa()" ngNativeValidate>
       <p class="hint">
         Digite o código de 6 dígitos do seu aplicativo autenticador, ou um código de recuperação.
       </p>
-      <mat-form-field appearance="outline">
-        <mat-label>Código</mat-label>
-        <input matInput formControlName="codigo" autocomplete="one-time-code" inputmode="text" autofocus />
-        <mat-error>Informe o código</mat-error>
-      </mat-form-field>
+      <div class="auth-field">
+        <label class="auth-label" for="codigo">Código</label>
+        <input
+          class="auth-input" required
+          id="codigo"
+          formControlName="codigo"
+          autocomplete="one-time-code"
+          inputmode="text"
+          autofocus
+        />
+      </div>
 
       @if (error(); as message) {
         <p class="form-error" role="alert">{{ message }}</p>
