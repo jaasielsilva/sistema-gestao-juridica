@@ -8,44 +8,34 @@
       <a mat-flat-button routerLink="/login" class="form-submit">Ir para o login</a>
     </div>
   } @else {
-    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-      <mat-form-field appearance="outline">
-        <mat-label>Nome</mat-label>
-        <input matInput formControlName="nome" autocomplete="name" autofocus />
-        <mat-error>Informe o nome</mat-error>
-      </mat-form-field>
+    <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" ngNativeValidate>
+      <div class="auth-field">
+        <label class="auth-label" for="nome">Nome</label>
+        <input class="auth-input" required id="nome" formControlName="nome" autocomplete="name" autofocus />
+      </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>E-mail</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="email" />
-        @if (form.controls.email.hasError('required')) {
-          <mat-error>Informe o e-mail</mat-error>
+      <div class="auth-field">
+        <label class="auth-label" for="email">E-mail</label>
+        <input class="auth-input" required id="email" type="email" formControlName="email" autocomplete="email" />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label" for="senha">Senha</label>
+        <input class="auth-input" required id="senha" type="password" formControlName="senha" autocomplete="new-password" />
+        @if (form.controls.senha.touched && form.controls.senha.invalid) {
+          <span class="auth-error">A senha precisa ter de {{ passwordMin }} a 72 caracteres</span>
         } @else {
-          <mat-error>E-mail inválido</mat-error>
+          <span class="auth-hint">Mínimo de {{ passwordMin }} caracteres</span>
         }
-      </mat-form-field>
+      </div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Senha</mat-label>
-        <input matInput type="password" formControlName="senha" autocomplete="new-password" />
-        <mat-hint>Mínimo de {{ passwordMin }} caracteres</mat-hint>
-        @if (form.controls.senha.hasError('required')) {
-          <mat-error>Informe a senha</mat-error>
-        } @else {
-          <mat-error>A senha precisa ter de {{ passwordMin }} a 72 caracteres</mat-error>
-        }
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Confirmar senha</mat-label>
-        <input matInput type="password" formControlName="confirmar" autocomplete="new-password" />
-        @if (form.controls.confirmar.hasError('required')) {
-          <mat-error>Repita a senha</mat-error>
-        }
+      <div class="auth-field">
+        <label class="auth-label" for="confirmar">Confirmar senha</label>
+        <input class="auth-input" required id="confirmar" type="password" formControlName="confirmar" autocomplete="new-password" />
         @if (form.hasError('mismatch') && form.controls.confirmar.touched) {
-          <mat-error>As senhas não conferem</mat-error>
+          <span class="auth-error">As senhas não conferem</span>
         }
-      </mat-form-field>
+      </div>
 
       @if (error(); as message) {
         <p class="form-error" role="alert">{{ message }}</p>

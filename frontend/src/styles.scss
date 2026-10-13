@@ -34,7 +34,7 @@ body {
 .form-stack {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin-top: 24px;
 }
 
@@ -57,7 +57,8 @@ body {
 }
 
 .form-submit {
-  height: 48px;
+  margin-top: 10px;
+  height: 40px;
 }
 
 .form-links {
@@ -76,4 +77,89 @@ body {
 .hint {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-small);
+}
+
+// ---- Campos das telas de autenticacao (visual do SaaS Monitor) ----
+// As variaveis --auth-* sao definidas em AuthPage (.auth).
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-label {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.auth-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--auth-text);
+  background: #111827;
+  border: 1px solid var(--auth-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder {
+    color: var(--auth-muted);
+  }
+
+  &:focus {
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+}
+
+.auth-input-wrap {
+  position: relative;
+
+  .auth-input {
+    padding-right: 40px;
+  }
+}
+
+.auth-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--auth-muted);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transform: translateY(-50%);
+
+  .mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    color: var(--auth-text);
+  }
+}
+
+.auth-error,
+.auth-hint {
+  font-size: 11px;
+}
+
+.auth-error {
+  color: #f87171;
+}
+
+.auth-hint {
+  color: var(--auth-muted);
 }
