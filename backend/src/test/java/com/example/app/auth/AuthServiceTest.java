@@ -50,12 +50,14 @@ class AuthServiceTest {
     private TokenAcaoService tokens;
     private AccountMailer mailer;
     private JwtService jwt;
+    private RegistrationWriter registrationWriter;
 
     private AuthService service(boolean registrationEnabled) {
         AppProperties props = TestProps.app(registrationEnabled);
         RequestInfo request = mock(RequestInfo.class);
         when(request.ip()).thenReturn("10.0.0.1");
-        return new AuthService(repo, encoder, jwt, sessions, throttle, audit, request, mfa, tokens, mailer, props);
+        return new AuthService(repo, encoder, jwt, sessions, throttle, audit, request, mfa, tokens, mailer, props,
+                registrationWriter);
     }
 
     @BeforeEach
@@ -72,6 +74,7 @@ class AuthServiceTest {
         tokens = mock(TokenAcaoService.class);
         mailer = mock(AccountMailer.class);
         jwt = new JwtService(TestProps.app(true));
+        registrationWriter = mock(RegistrationWriter.class);
     }
 
     private Usuario user(boolean verified, boolean mfaOn) {
@@ -84,38 +87,36 @@ class AuthServiceTest {
 
     @Test
     void registerDesabilitadoRetorna403() {
-        assertThatThrownBy(() -> service(false).register(new RegisterRequest("A", "a@b.com", "senha-forte-123")))
+        assertThatThrownBy(() -> service(false).register(new RegisterRequest("A", "Org", "a@b.com", "senha-forte-123")))
                 .isInstanceOfSatisfying(BusinessException.class,
                         e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
         verify(repo, never()).saveAndFlush(any());
     }
 
     @Test
-    void registerNormalizaEmailForcaPapelUserNoTenantPadraoEEnviaVerificacao() {
+    void registerNormalizaEmailEEnviaVerificacaoParaTenantProvisionado() {
         when(repo.existsByEmail("joao@x.com")).thenReturn(false);
-        when(repo.saveAndFlush(any(Usuario.class))).thenAnswer(i -> i.getArgument(0));
+        when(registrationWriter.create(any(), eq("joao@x.com"), anyString()))
+                .thenAnswer(i -> new Usuario(42L, "Joao", "joao@x.com", i.getArgument(2), Papel.ADMIN));
         when(tokens.emitir(any(), eq(TipoToken.VERIFICACAO_EMAIL), any(Duration.class))).thenReturn("tok-123");
 
-        service(true).register(new RegisterRequest("  Joao ", "  Joao@X.com ", "senha-forte-123"));
+        service(true).register(new RegisterRequest("  Joao ", "  Org ", "  Joao@X.com ", "senha-forte-123"));
 
-        ArgumentCaptor<Usuario> saved = ArgumentCaptor.forClass(Usuario.class);
-        verify(repo).saveAndFlush(saved.capture());
-        assertThat(saved.getValue().getEmail()).isEqualTo("joao@x.com");
-        assertThat(saved.getValue().getNome()).isEqualTo("Joao");
-        assertThat(saved.getValue().getPapel()).isEqualTo(Papel.USER);
-        assertThat(saved.getValue().getTenantId()).isEqualTo(TenantContext.DEFAULT_TENANT_ID);
-        assertThat(saved.getValue().isEmailVerificado()).isFalse();
-        assertThat(encoder.matches("senha-forte-123", saved.getValue().getSenhaHash())).isTrue();
+        ArgumentCaptor<RegisterRequest> request = ArgumentCaptor.forClass(RegisterRequest.class);
+        ArgumentCaptor<String> hash = ArgumentCaptor.forClass(String.class);
+        verify(registrationWriter).create(request.capture(), eq("joao@x.com"), hash.capture());
+        assertThat(request.getValue().nome()).isEqualTo("  Joao ");
+        assertThat(request.getValue().organizacao()).isEqualTo("  Org ");
+        assertThat(encoder.matches("senha-forte-123", hash.getValue())).isTrue();
         verify(mailer).sendVerification(eq("joao@x.com"), eq("Joao"), eq("tok-123"));
     }
 
     @Test
-    void registerComEmailExistenteRetornaConflito() {
+    void registerComEmailExistenteRetornaSemRevelarSeJaExiste() {
         when(repo.existsByEmail("a@b.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> service(true).register(new RegisterRequest("A", "a@b.com", "senha-forte-123")))
-                .isInstanceOfSatisfying(BusinessException.class,
-                        e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT));
+        service(true).register(new RegisterRequest("A", "Org", "a@b.com", "senha-forte-123"));
+        verify(registrationWriter, never()).create(any(), anyString(), anyString());
     }
 
     @Test

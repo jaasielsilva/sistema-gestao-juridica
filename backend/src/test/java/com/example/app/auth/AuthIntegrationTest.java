@@ -86,8 +86,9 @@ class AuthIntegrationTest extends IntegrationTestBase {
 
     /** Cadastra e devolve o token de verificacao que seria enviado por e-mail. */
     private String register(String email) throws Exception {
-        postJson("/api/v1/auth/register", body("nome", "Teste", "email", email, "senha", PASSWORD))
-                .andExpect(status().isCreated());
+        postJson("/api/v1/auth/register", body("nome", "Teste", "organizacao", "Org Teste",
+                "email", email, "senha", PASSWORD))
+                .andExpect(status().isAccepted());
         ArgumentCaptor<String> token = ArgumentCaptor.forClass(String.class);
         verify(mailer).sendVerification(eq(email), any(), token.capture());
         return token.getValue();
@@ -139,10 +140,10 @@ class AuthIntegrationTest extends IntegrationTestBase {
 
         me(t.access()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(email))
-                .andExpect(jsonPath("$.papel").value("USER"))
+                .andExpect(jsonPath("$.papel").value("ADMIN"))
                 .andExpect(jsonPath("$.emailVerificado").value(true))
                 .andExpect(jsonPath("$.mfaAtivo").value(false))
-                .andExpect(jsonPath("$.tenantId").value(1))
+                .andExpect(jsonPath("$.tenantId").value(org.hamcrest.Matchers.greaterThan(1)))
                 .andExpect(jsonPath("$.senhaHash").doesNotExist());
         // o mesmo link nao vale duas vezes
         postJson("/api/v1/auth/verify-email", body("token", token)).andExpect(status().isBadRequest());
@@ -160,11 +161,13 @@ class AuthIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void cadastroDuplicadoRetorna409ESenhaFracaOuEmailInvalidoRetorna400() throws Exception {
+    void cadastroDuplicadoNaoRevelaExistenciaESenhaFracaOuEmailInvalidoRetorna400() throws Exception {
         String email = registerAndVerify(email());
-        postJson("/api/v1/auth/register", body("nome", "X", "email", email, "senha", PASSWORD))
-                .andExpect(status().isConflict());
-        postJson("/api/v1/auth/register", body("nome", "X", "email", "nao-e-email", "senha", "curta"))
+        postJson("/api/v1/auth/register", body("nome", "X", "organizacao", "Org X",
+                "email", email, "senha", PASSWORD))
+                .andExpect(status().isAccepted());
+        postJson("/api/v1/auth/register", body("nome", "X", "organizacao", "Org X",
+                "email", "nao-e-email", "senha", "curta"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.violations").isNotEmpty());
     }
@@ -437,6 +440,7 @@ class AuthIntegrationTest extends IntegrationTestBase {
     void areaAdminEAuditoriaSoParaAdminESoDoProprioTenant() throws Exception {
         String user = registerAndVerify(email());
         String admin = registerAndVerify(email());
+        jdbc.update("UPDATE usuario SET papel = 'USER' WHERE email = ?", user);
         jdbc.update("UPDATE usuario SET papel = 'ADMIN' WHERE email = ?", admin);
         Tokens userTokens = login(user, PASSWORD);
         Tokens adminTokens = login(admin, PASSWORD);
@@ -467,10 +471,11 @@ class AuthIntegrationTest extends IntegrationTestBase {
 
     @Test
     void tenantNaoEnxergaDadosDeOutroTenantPorListagemIdOuExclusao() throws Exception {
-        tenants.save(new Tenant(2L, "Empresa B"));
+        long tenantB = tenants.nextId();
+        tenants.save(new Tenant(tenantB, "Empresa B"));
         String emailA = registerAndVerify(email());
         String emailB = email();
-        Usuario b = new Usuario(2L, "Usuario B", emailB, encoder.encode(PASSWORD), Papel.USER);
+        Usuario b = new Usuario(tenantB, "Usuario B", emailB, encoder.encode(PASSWORD), Papel.USER);
         b.marcarEmailVerificado();
         usuarios.save(b);
         Tokens a = login(emailA, PASSWORD);
@@ -480,7 +485,8 @@ class AuthIntegrationTest extends IntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON).content(body("titulo", "Segredo da empresa A")))
                 .andExpect(status().isCreated()).andReturn();
         long notaId = json.readTree(created.getResponse().getContentAsString()).path("id").asLong();
-        assertThat(jdbc.queryForObject("SELECT tenant_id FROM nota WHERE id = ?", Long.class, notaId)).isEqualTo(1L);
+        long tenantA = usuarios.findByEmail(emailA).orElseThrow().getTenantId();
+        assertThat(jdbc.queryForObject("SELECT tenant_id FROM nota WHERE id = ?", Long.class, notaId)).isEqualTo(tenantA);
 
         // Tenant B, usando o ID conhecido da nota do tenant A:
         mvc.perform(get("/api/v1/notas/" + notaId).header("Authorization", "Bearer " + tb.access()))

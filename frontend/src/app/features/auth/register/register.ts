@@ -32,6 +32,7 @@ export class Register {
   protected readonly form = this.fb.nonNullable.group(
     {
       nome: ['', [Validators.required, Validators.maxLength(150)]],
+      organizacao: ['', [Validators.required, Validators.maxLength(150)]],
       email: ['', [Validators.required, Validators.email]],
       senha: ['', [Validators.required, Validators.minLength(PASSWORD_MIN), Validators.maxLength(PASSWORD_MAX)]],
       confirmar: ['', [Validators.required]],
@@ -44,13 +45,13 @@ export class Register {
       this.form.markAllAsTouched();
       return;
     }
-    const { nome, email, senha } = this.form.getRawValue();
+    const { nome, organizacao, email, senha } = this.form.getRawValue();
     this.loading.set(true);
     this.error.set(null);
-    this.auth.register({ nome, email, senha }).subscribe({
-      next: (user) => {
+    this.auth.register({ nome, organizacao, email, senha }).subscribe({
+      next: () => {
         this.loading.set(false);
-        this.sentTo.set(user.email);
+        this.sentTo.set(email);
       },
       error: (err: unknown) => {
         this.loading.set(false);

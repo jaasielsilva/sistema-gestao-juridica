@@ -6,9 +6,6 @@ package com.example.app.tenant;
  */
 public final class TenantContext {
 
-    /** Tenant padrao para auto-cadastro (linha semeada em 002_create_tenant.sql). */
-    public static final long DEFAULT_TENANT_ID = 1L;
-
     /** Sentinela "sem tenant": nenhuma linha de negocio tem este id, entao consultas retornam vazio (falha fechada). */
     public static final long NONE = -1L;
 

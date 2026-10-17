@@ -25,6 +25,7 @@ describe('Register', () => {
     const el = fixture.nativeElement as HTMLElement;
 
     typeInto(el, 'input[formcontrolname=nome]', 'Maria');
+    typeInto(el, 'input[formcontrolname=organizacao]', 'Org Maria');
     typeInto(el, 'input[formcontrolname=email]', 'm@x.com');
     typeInto(el, 'input[formcontrolname=senha]', 'curta');
     typeInto(el, 'input[formcontrolname=confirmar]', 'outra');
@@ -41,17 +42,18 @@ describe('Register', () => {
     const el = fixture.nativeElement as HTMLElement;
 
     typeInto(el, 'input[formcontrolname=nome]', 'Maria');
+    typeInto(el, 'input[formcontrolname=organizacao]', 'Org Maria');
     typeInto(el, 'input[formcontrolname=email]', 'm@x.com');
     typeInto(el, 'input[formcontrolname=senha]', 'senha-forte-123');
     typeInto(el, 'input[formcontrolname=confirmar]', 'senha-forte-123');
     el.querySelector<HTMLButtonElement>('button[type=submit]')!.click();
 
     const req = http.expectOne('/api/v1/auth/register');
-    expect(req.request.body).toEqual({ nome: 'Maria', email: 'm@x.com', senha: 'senha-forte-123' });
-    req.flush({ id: 1, nome: 'Maria', email: 'm@x.com', papel: 'USER' });
+    expect(req.request.body).toEqual({ nome: 'Maria', organizacao: 'Org Maria', email: 'm@x.com', senha: 'senha-forte-123' });
+    req.flush({ message: 'Se o cadastro puder ser concluido, enviaremos instrucoes para o e-mail informado.' });
     await fixture.whenStable();
 
-    expect(el.textContent).toContain('Enviamos um link de confirmação');
+    expect(el.textContent).toContain('Se o cadastro puder ser concluido');
     expect(el.textContent).toContain('m@x.com');
   });
 });

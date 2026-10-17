@@ -22,7 +22,7 @@ class RegistrationDisabledIntegrationTest extends IntegrationTestBase {
     @Test
     void cadastroDesabilitadoRetorna403EAConfigAvisaOFrontend() throws Exception {
         mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nome\":\"X\",\"email\":\"x@y.com\",\"senha\":\"senha-forte-123\"}"))
+                        .content("{\"nome\":\"X\",\"organizacao\":\"Org X\",\"email\":\"x@y.com\",\"senha\":\"senha-forte-123\"}"))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/api/v1/auth/config"))
                 .andExpect(status().isOk())

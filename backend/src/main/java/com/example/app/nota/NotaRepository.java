@@ -7,4 +7,6 @@ import java.util.List;
 public interface NotaRepository extends TenantScopedRepository<Nota> {
 
     List<Nota> findAllByOrderByCriadoEmDescIdDesc();
+
+    List<Nota> findAllByCriadoPorOrderByCriadoEmDescIdDesc(Long criadoPor);
 }

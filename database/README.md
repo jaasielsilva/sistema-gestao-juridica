@@ -23,6 +23,7 @@ O schema é definido por scripts em `scripts/`. Não usamos Flyway nem Liquibase
 | `006_create_login_tentativa.sql` | Controle de tentativas / bloqueio |
 | `007_create_auditoria.sql` | Trilha de auditoria (somente INSERT pela aplicação) |
 | `008_create_nota.sql` | **Exemplo** de tabela com tenant (apague no produto real) |
+| `009_tenant_isolation_hardening.sql` | Provisiona IDs de tenants e separa os usuarios legados do tenant padrao |
 
 ## Controle de aplicação
 A numeração sozinha não evita reaplicação nem divergência. Por isso existe `dbo.schema_version`, com nome, checksum SHA-256 e data de cada script aplicado. O `apply.sh`:

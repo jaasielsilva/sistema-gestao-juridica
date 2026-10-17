@@ -95,8 +95,8 @@ export class AuthService {
 
   // ---------- fluxos de conta (publicos) ----------
 
-  register(body: { nome: string; email: string; senha: string }): Observable<User> {
-    return this.http.post<User>(`${BASE}/auth/register`, body);
+  register(body: { nome: string; organizacao: string; email: string; senha: string }): Observable<Message> {
+    return this.http.post<Message>(`${BASE}/auth/register`, body);
   }
 
   verifyEmail(token: string): Observable<Message> {

@@ -2,6 +2,7 @@ package com.example.app.nota;
 
 import com.example.app.security.AuthPrincipal;
 import com.example.app.shared.BusinessException;
+import com.example.app.user.Papel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -45,14 +46,19 @@ public class NotaController {
 
     @GetMapping
     @Transactional(readOnly = true)
-    public List<NotaResponse> listar() {
-        return notas.findAllByOrderByCriadoEmDescIdDesc().stream().map(NotaResponse::of).toList();
+    public List<NotaResponse> listar(@AuthenticationPrincipal AuthPrincipal user) {
+        List<Nota> visiveis = user.papel() == Papel.ADMIN
+                ? notas.findAllByOrderByCriadoEmDescIdDesc()
+                : notas.findAllByCriadoPorOrderByCriadoEmDescIdDesc(user.userId());
+        return visiveis.stream().map(NotaResponse::of).toList();
     }
 
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
-    public NotaResponse buscar(@PathVariable Long id) {
-        return notas.findById(id).map(NotaResponse::of).orElseThrow(() -> BusinessException.notFound("Nota nao encontrada"));
+    public NotaResponse buscar(@PathVariable Long id, @AuthenticationPrincipal AuthPrincipal user) {
+        Nota nota = notas.findById(id).orElseThrow(() -> BusinessException.notFound("Nota nao encontrada"));
+        exigirPropriedadeOuAdmin(nota, user);
+        return NotaResponse.of(nota);
     }
 
     @PostMapping
@@ -65,8 +71,15 @@ public class NotaController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
-    public void apagar(@PathVariable Long id) {
+    public void apagar(@PathVariable Long id, @AuthenticationPrincipal AuthPrincipal user) {
         Nota nota = notas.findById(id).orElseThrow(() -> BusinessException.notFound("Nota nao encontrada"));
+        exigirPropriedadeOuAdmin(nota, user);
         notas.delete(nota);
+    }
+
+    private static void exigirPropriedadeOuAdmin(Nota nota, AuthPrincipal user) {
+        if (!nota.getCriadoPor().equals(user.userId()) && user.papel() != Papel.ADMIN) {
+            throw BusinessException.forbidden("Voce nao pode acessar esta nota");
+        }
     }
 }

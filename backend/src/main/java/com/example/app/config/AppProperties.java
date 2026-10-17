@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Locale;
+
 /** Configuracao tipada de tudo que e especifico da aplicacao. Valida na partida: config errada = nao sobe. */
 @Validated
 @ConfigurationProperties(prefix = "app")
@@ -24,6 +26,12 @@ public record AppProperties(
             @NotBlank @Size(min = 32, message = "app.jwt.secret precisa ter no minimo 32 caracteres") String secret,
             @NotBlank String issuer,
             @Positive long accessMinutes) {
+
+        public Jwt {
+            if (secret != null && secret.toLowerCase(Locale.ROOT).contains("troque")) {
+                throw new IllegalArgumentException("app.jwt.secret nao pode conter marcadores de segredo de exemplo");
+            }
+        }
     }
 
     public record Refresh(@Positive long days, boolean cookieSecure, @PositiveOrZero long reuseGraceSeconds) {

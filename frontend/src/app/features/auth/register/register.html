@@ -2,8 +2,7 @@
   @if (sentTo(); as email) {
     <div class="form-stack">
       <p class="form-success" role="status">
-        Conta criada! Enviamos um link de confirmação para <strong>{{ email }}</strong>. Confirme o e-mail para poder
-        entrar.
+        Se o cadastro puder ser concluido, enviaremos instrucoes para <strong>{{ email }}</strong>.
       </p>
       <a mat-flat-button routerLink="/login" class="form-submit">Ir para o login</a>
     </div>
@@ -12,6 +11,11 @@
       <div class="auth-field">
         <label class="auth-label" for="nome">Nome</label>
         <input class="auth-input" required id="nome" formControlName="nome" autocomplete="name" autofocus />
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label" for="organizacao">Organizacao</label>
+        <input class="auth-input" required id="organizacao" formControlName="organizacao" autocomplete="organization" />
       </div>
 
       <div class="auth-field">

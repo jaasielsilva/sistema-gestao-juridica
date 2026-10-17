@@ -64,9 +64,10 @@ public class AuthController {
     // ---------- cadastro e login ----------
 
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserResponse register(@Valid @RequestBody RegisterRequest request) {
-        return auth.register(request);
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public MessageResponse register(@Valid @RequestBody RegisterRequest request) {
+        auth.register(request);
+        return new MessageResponse("Se o cadastro puder ser concluido, enviaremos instrucoes para o e-mail informado.");
     }
 
     @PostMapping("/login")

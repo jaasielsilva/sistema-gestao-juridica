@@ -20,6 +20,7 @@ public final class AuthDtos {
 
     public record RegisterRequest(
             @NotBlank @Size(max = 150) String nome,
+            @NotBlank @Size(max = 150) String organizacao,
             @NotBlank @Email @Size(max = 255) String email,
             @NotBlank @Size(min = SENHA_MIN, max = SENHA_MAX) String senha) {
     }

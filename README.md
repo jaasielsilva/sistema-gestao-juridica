@@ -45,12 +45,8 @@ Template pronto para iniciar um produto novo: **Spring Boot 3.5 + Java 21 + SQL 
 
 Todas as portas ficam presas a `127.0.0.1` (só o seu computador acessa).
 
-### Virar administrador
-O cadastro sempre cria `USER`. Para promover alguém, faça conscientemente, com script SQL revisado ou direto no banco do ambiente:
-```sql
-UPDATE dbo.usuario SET papel = 'ADMIN' WHERE email = 'voce@exemplo.com';
-```
-(O papel vai no token: saia e entre de novo.)
+### Cadastro e tenants
+O cadastro solicita o nome da organização e cria um tenant isolado. A primeira conta recebe papel `ADMIN` somente nesse tenant; o papel e o tenant são definidos pelo servidor, nunca pelo cliente. O cadastro fica desabilitado por padrão e pode ser habilitado explicitamente com `REGISTRATION_ENABLED=true`:
 
 ## Testando
 ```bash

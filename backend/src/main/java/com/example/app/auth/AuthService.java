@@ -17,8 +17,6 @@ import com.example.app.security.AuthPrincipal;
 import com.example.app.security.JwtService;
 import com.example.app.shared.BusinessException;
 import com.example.app.shared.RequestInfo;
-import com.example.app.tenant.TenantContext;
-import com.example.app.user.Papel;
 import com.example.app.user.Usuario;
 import com.example.app.user.UsuarioRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -44,12 +42,14 @@ public class AuthService {
     private final TokenAcaoService tokens;
     private final AccountMailer mailer;
     private final AppProperties props;
+    private final RegistrationWriter registrationWriter;
     // Hash descartavel: gasta o mesmo tempo de BCrypt quando o e-mail nao existe (evita enumeracao por timing).
     private final String dummyHash;
 
     public AuthService(UsuarioRepository usuarios, PasswordEncoder encoder, JwtService jwt, SessionService sessions,
                        ThrottleService throttle, AuditService audit, RequestInfo request, MfaService mfa,
-                       TokenAcaoService tokens, AccountMailer mailer, AppProperties props) {
+                       TokenAcaoService tokens, AccountMailer mailer, AppProperties props,
+                       RegistrationWriter registrationWriter) {
         this.usuarios = usuarios;
         this.encoder = encoder;
         this.jwt = jwt;
@@ -61,6 +61,7 @@ public class AuthService {
         this.tokens = tokens;
         this.mailer = mailer;
         this.props = props;
+        this.registrationWriter = registrationWriter;
         this.dummyHash = encoder.encode(UUID.randomUUID().toString());
     }
 
@@ -71,8 +72,7 @@ public class AuthService {
         }
     }
 
-    @Transactional
-    public UserResponse register(RegisterRequest req) {
+    public void register(RegisterRequest req) {
         if (!props.registrationEnabled()) {
             throw BusinessException.forbidden("O cadastro esta desabilitado");
         }
@@ -80,20 +80,23 @@ public class AuthService {
 
         String email = normalize(req.email());
         if (usuarios.existsByEmail(email)) {
-            throw BusinessException.conflict("E-mail ja cadastrado");
+            encoder.matches(req.senha(), dummyHash);
+            return;
         }
+        Usuario u;
         try {
-            // Papel e tenant sao decididos pelo servidor: ADMIN nunca vem do cliente; auto-cadastro cai no tenant padrao.
-            Usuario u = usuarios.saveAndFlush(new Usuario(TenantContext.DEFAULT_TENANT_ID, req.nome().trim(), email,
-                    encoder.encode(req.senha()), Papel.USER));
-            String token = tokens.emitir(u.getId(), TipoToken.VERIFICACAO_EMAIL, Duration.ofHours(24));
-            mailer.sendVerification(u.getEmail(), u.getNome(), token);
-            audit.sucesso(TipoEvento.CADASTRO, u.getId(), u.getTenantId(), null);
-            return toResponse(u);
+            u = registrationWriter.create(req, email, encoder.encode(req.senha()));
         } catch (DataIntegrityViolationException ex) {
-            // Corrida entre duas requisicoes com o mesmo e-mail: a constraint unique do banco decide.
-            throw BusinessException.conflict("E-mail ja cadastrado");
+            // A unique constraint arbitrates concurrent signups. Keep duplicate-email responses generic too.
+            if (!usuarios.existsByEmail(email)) {
+                throw ex;
+            }
+            encoder.matches(req.senha(), dummyHash);
+            return;
         }
+        String token = tokens.emitir(u.getId(), TipoToken.VERIFICACAO_EMAIL, Duration.ofHours(24));
+        mailer.sendVerification(u.getEmail(), u.getNome(), token);
+        audit.sucesso(TipoEvento.CADASTRO, u.getId(), u.getTenantId(), null);
     }
 
     @Transactional
