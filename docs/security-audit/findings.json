@@ -1,0 +1,271 @@
+{
+  "projeto": "GENERICO",
+  "versao_relatorio": "1.0",
+  "data": "2026-10-17",
+  "autor": "Kiro AppSec",
+  "classificacao": "CONFIDENCIAL",
+  "achados": [
+    {
+      "id": "SEC-001",
+      "titulo": "Swagger UI exposto em producao por padrao",
+      "categoria": "C7 - Configuracao Insegura",
+      "cwe": "CWE-16",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "severidade": "Media",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "cvss_score": 5.3,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "backend/src/main/java/com/example/app/security/SecurityConfig.java:52",
+        "docker-compose.yml (SWAGGER_ENABLED default true)"
+      ],
+      "evidencia": ".requestMatchers(\"/v3/api-docs/**\", \"/swagger-ui/**\", \"/swagger-ui.html\").permitAll()\n// docker-compose.yml:\nSWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}",
+      "descricao": "A UI do Swagger (springdoc-openapi) e os endpoints /v3/api-docs/** estao liberados sem autenticacao em SecurityConfig. O docker-compose define SWAGGER_ENABLED=true como default, de modo que qualquer deploy que nao sobrescreva essa variavel expoe o catalogo completo da API publicamente.",
+      "cenario": "1. Atacante acessa https://alvo/swagger-ui.html sem credenciais. 2. Visualiza todos os endpoints, parametros, schemas de request/response e exemplos. 3. Usa essa informacao para planejar ataques direcionados (enumeracao de endpoints, fuzzing de parametros, identificacao de versoes).",
+      "preconditions": "Deploy sem sobrescrever SWAGGER_ENABLED=false. Backend acessivel pela internet.",
+      "impacto": "Vazamento do contrato completo da API facilita reconhecimento e acelera outros ataques.",
+      "correcao": "1. Mudar o default em docker-compose.yml para SWAGGER_ENABLED=false. 2. Em SecurityConfig, condicionar o permitAll() a @ConditionalOnProperty(name='springdoc.api-docs.enabled', havingValue='true'). 3. Nunca habilitar em producao.",
+      "p_prioridade": "P2"
+    },
+    {
+      "id": "SEC-002",
+      "titulo": "Actuator /health exposto sem autenticacao e sem restricao de detalhes",
+      "categoria": "C7 - Configuracao Insegura",
+      "cwe": "CWE-209",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "severidade": "Media",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "cvss_score": 5.3,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "backend/src/main/java/com/example/app/security/SecurityConfig.java:52"
+      ],
+      "evidencia": ".requestMatchers(\"/actuator/health/**\").permitAll()",
+      "descricao": "O path /actuator/health/** esta publicamente acessivel. A configuracao padrao do Spring Boot Actuator com management.endpoint.health.show-details nao restrita pode retornar informacoes sobre banco, disco e dependencias. Nao foi possivel verificar o application.yml de producao para confirmar se show-details=never esta definido.",
+      "cenario": "1. GET /actuator/health/db (sem token). 2. Resposta pode revelar versao do banco, status de conexao e nome do datasource. 3. Informacao usada para direcionar ataques ao banco.",
+      "preconditions": "show-details nao configurado como 'never' em producao.",
+      "impacto": "Divulgacao de informacoes internas de infraestrutura.",
+      "correcao": "Adicionar ao application.yml: management.endpoint.health.show-details=never e management.endpoint.health.show-components=never. Restringir /actuator/health apenas ao path raiz (sem /**) ou usar management.server.port separado com firewall.",
+      "p_prioridade": "P2"
+    },
+    {
+      "id": "SEC-003",
+      "titulo": "Grace period de refresh token permite reutilizacao em janela de tempo",
+      "categoria": "C6 - Autenticacao e Sessao",
+      "cwe": "CWE-613",
+      "owasp": "A07:2021 - Identification and Authentication Failures",
+      "severidade": "Media",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:L/A:N",
+      "cvss_score": 5.9,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "backend/src/main/java/com/example/app/auth/session/SessionService.java:62-72"
+      ],
+      "evidencia": "if (token.getUsadoEm() != null) {\n    if (token.getUsadoEm().isBefore(now.minus(reuseGrace))) {\n        sessao.revogar(now); // so revoga APOS o grace period\n    }\n} else {\n    token.marcarUsado(now);\n}",
+      "descricao": "O refresh token e marcado como usado mas ainda e aceito para renovacao dentro da janela reuseGrace (configuravel via app.refresh.reuse-grace-seconds). Se um atacante obtiver o refresh token (ex: acesso fisico ao cookie, MitM em HTTP) dentro dessa janela, consegue criar uma sessao paralela sem disparar o mecanismo anti-replay. A injecao do token dentro do grace period nao aciona revogacao.",
+      "cenario": "1. Atacante intercepta o cookie refresh_token de uma sessao ativa. 2. Vitima faz refresh normalmente; token e marcado como usado. 3. Dentro do grace period, atacante usa o mesmo token: a sessao NAO e revogada, dois access tokens ativos circulam. 4. Ambas as sessoes operam normalmente ate o proximo refresh apos o grace period.",
+      "preconditions": "Atacante precisa obter o cookie HttpOnly (requer outro vetor: acesso fisico, comprometimento de proxy, subdomain cookie hijacking). Ataque viavel apenas durante o grace period.",
+      "impacto": "Sessao duplicada sem notificacao ao usuario.",
+      "correcao": "Avaliar se o grace period e necessario para o produto. Se for, reduzir ao minimo (2-5s). Considerar alertar o usuario via auditoria quando o mesmo token for usado mais de uma vez, mesmo dentro do grace period. Documentar o risco aceito.",
+      "p_prioridade": "P3"
+    },
+    {
+      "id": "SEC-004",
+      "titulo": "FORWARD_HEADERS_STRATEGY=native sem lista de proxies confiaveis",
+      "categoria": "C7 - Configuracao Insegura",
+      "cwe": "CWE-348",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "severidade": "Baixa",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N",
+      "cvss_score": 3.7,
+      "confianca": "Requer validacao",
+      "arquivos": [
+        "docker-compose.yml (FORWARD_HEADERS_STRATEGY: native)"
+      ],
+      "evidencia": "FORWARD_HEADERS_STRATEGY: native\n// RequestInfo.java:\npublic String ip() { return r.getRemoteAddr(); }",
+      "descricao": "Com FORWARD_HEADERS_STRATEGY=native, o Tomcat aceita X-Forwarded-For de qualquer origem sem validar se o remetente e um proxy confiavel. Se o backend estiver acessivel diretamente (sem passar pelo nginx), um cliente malicioso pode forjar o IP enviando X-Forwarded-For: 1.2.3.4, contornando bloqueios de throttle baseados em IP.",
+      "cenario": "1. Backend acessivel diretamente em :8080. 2. Atacante envia POST /api/v1/auth/login com header X-Forwarded-For: 192.168.1.1. 3. ThrottleService usa o IP forjado como chave: o bloqueio se aplica ao IP falso, nao ao IP real.",
+      "preconditions": "Backend exposto diretamente sem o nginx como unico ponto de entrada. No docker-compose local, backend escuta em 127.0.0.1:8080 o que mitiga em desenvolvimento.",
+      "impacto": "Bypass parcial do rate limiting por IP em ambientes mal configurados.",
+      "correcao": "Configurar server.tomcat.remoteip.internal-proxies com o range IP real do nginx/load balancer. Ou usar FORWARD_HEADERS_STRATEGY=framework com InternalProxyTrustedHeader. Em producao, garantir que o backend nao e acessivel diretamente.",
+      "p_prioridade": "P3"
+    },
+    {
+      "id": "SEC-005",
+      "titulo": "Validacao de segredo de exemplo incompleta na inicializacao",
+      "categoria": "C4 - Chaves Expostas",
+      "cwe": "CWE-798",
+      "owasp": "A02:2021 - Cryptographic Failures",
+      "severidade": "Baixa",
+      "cvss_vector": "CVSS:3.1/AV:L/AC:H/PR:H/UI:N/S:U/C:L/I:N/A:N",
+      "cvss_score": 2.0,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "backend/src/main/java/com/example/app/config/AppProperties.java:20-24",
+        ".env.example"
+      ],
+      "evidencia": "// AppProperties.java - valida APENAS jwt.secret:\npublic Jwt { if (secret != null && secret.toLowerCase().contains(\"troque\")) {\n    throw new IllegalArgumentException(\"app.jwt.secret nao pode conter marcadores...\"); }}\n\n// .env.example - MFA_ENCRYPTION_KEY sem validacao equivalente:\nMFA_ENCRYPTION_KEY=troque-gere-com-openssl-rand-base64-32",
+      "descricao": "A protecao de startup que rejeita segredos com o marcador 'troque' existe apenas para app.jwt.secret (AppProperties.Jwt). As propriedades app.mfa.encryption-key e as senhas de banco nao tem validacao equivalente. Um deploy descuidado que copie .env.example sem substituir MFA_ENCRYPTION_KEY sobe a aplicacao com chave invalida (falha no Base64) ou, se o valor for trocado por algo fraco, sem rejeicao.",
+      "cenario": "Desenvolvedor faz deploy com MFA_ENCRYPTION_KEY=chave-fraca-qualquer. A aplicacao sobe normalmente. Segredos TOTP ficam criptografados com chave fraca.",
+      "preconditions": "Erro operacional no processo de deploy.",
+      "impacto": "Criptografia em repouso dos segredos TOTP enfraquecida sem alertas.",
+      "correcao": "Adicionar validacao em AppProperties.Mfa: verificar se encryptionKey contem 'troque' (igual ao jwt.secret). Opcionalmente, verificar entropia minima (comprimento do Base64 decodificado = 32 bytes ja valida em SecretCipher, mas a excecao e RuntimeException generica sem contexto).",
+      "p_prioridade": "P2"
+    },
+    {
+      "id": "SEC-006",
+      "titulo": "CSP do nginx usa 'unsafe-inline' em style-src",
+      "categoria": "C7 - Configuracao Insegura",
+      "cwe": "CWE-79",
+      "owasp": "A03:2021 - Injection",
+      "severidade": "Informativa",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N",
+      "cvss_score": 2.6,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "frontend/nginx/security-headers.conf:6"
+      ],
+      "evidencia": "add_header Content-Security-Policy \"... style-src 'self' 'unsafe-inline' ...\" always;",
+      "descricao": "A CSP permite estilos inline (unsafe-inline em style-src). Isso nao habilita XSS via script (script-src nao tem unsafe-inline), mas permite CSS injection, que pode ser usada para exfiltrar dados via seletores CSS ou alterar a aparencia da pagina de forma enganosa. O CLAUDE.md documenta que inlineCritical foi desabilitado justamente para evitar scripts inline na CSP.",
+      "cenario": "Um atacante com capacidade de injetar HTML (ex: via stored XSS em campo nao tratado) pode usar <style> para exfiltrar tokens CSRF ou realizar UI redressing.",
+      "preconditions": "Requer outra vulnerabilidade de injecao de conteudo.",
+      "impacto": "Baixo isolado; moderado se combinado com outra vulnerabilidade.",
+      "correcao": "Avaliar remocao de 'unsafe-inline' de style-src e uso de nonces ou hashes para estilos criticos. Angular Material injeta estilos em runtime; pode requerer ajuste de build.",
+      "p_prioridade": "P3"
+    },
+    {
+      "id": "SEC-007",
+      "titulo": "Rate limiting no nginx ausente para endpoints de negocio",
+      "categoria": "C10 - Abuso e Disponibilidade",
+      "cwe": "CWE-770",
+      "owasp": "API4:2023 - Unrestricted Resource Consumption",
+      "severidade": "Baixa",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:L",
+      "cvss_score": 4.3,
+      "confianca": "Confirmado",
+      "arquivos": [
+        "frontend/nginx/locations.conf"
+      ],
+      "evidencia": "# Apenas /api/v1/auth/ tem limit_req:\nlocation /api/v1/auth/ { limit_req zone=auth burst=20 nodelay; ... }\n# /api/v1/notas/ e /api/v1/admin/ nao tem limite nginx",
+      "descricao": "O rate limiting por IP no nginx esta configurado somente para /api/v1/auth/. Endpoints de negocio como /api/v1/notas (POST/GET/DELETE) e /api/v1/admin/auditoria nao tem limite de requisicoes na camada nginx. O backend tem throttle apenas em operacoes de autenticacao; nao ha protecao equivalente para os endpoints de negocio.",
+      "cenario": "Usuario autenticado (ou token roubado) dispara milhares de requisicoes em /api/v1/notas para criar notas em massa ou sobrecarregar a lista. Sem limite nginx, a carga chega integra ao backend e ao banco.",
+      "preconditions": "Token de acesso valido.",
+      "impacto": "Degradacao de disponibilidade; consumo excessivo de recursos de banco.",
+      "correcao": "Criar zona limit_req_zone para endpoints autenticados (ex: rate=30r/s por IP) e aplicar em /api/v1/. Considerar limites por usuario no backend para endpoints de escrita.",
+      "p_prioridade": "P3"
+    },
+    {
+      "id": "SEC-008",
+      "titulo": "Versao do Spring Boot nao existe no Maven Central (3.5.16)",
+      "categoria": "C11 - Dependencias",
+      "cwe": "CWE-1104",
+      "owasp": "A06:2021 - Vulnerable and Outdated Components",
+      "severidade": "Informativa",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:L",
+      "cvss_score": 3.7,
+      "confianca": "Requer validacao",
+      "arquivos": [
+        "backend/pom.xml:8"
+      ],
+      "evidencia": "<version>3.5.16</version>  <!-- Spring Boot parent -->",
+      "descricao": "A versao 3.5.16 do spring-boot-starter-parent nao existe no Maven Central (versoes publicas da linha 3.5.x vao ate 3.5.x patchlevel real). O build depende de cache Maven local ou repositorio interno para funcionar. Em CI sem cache, o build pode falhar silenciosamente ou usar uma versao incorreta. Requer validacao do repositorio Maven do ambiente.",
+      "cenario": "CI sem cache tenta baixar spring-boot-starter-parent:3.5.16, falha, e o artefato nao e construido.",
+      "preconditions": "Sem cache Maven no runner de CI.",
+      "impacto": "Indisponibilidade de build; possivel uso de versao incorreta de dependencias.",
+      "correcao": "Verificar e corrigir para a versao estavel real do Spring Boot (ex: 3.4.x ou 3.3.x conforme disponivel). Validar o pom.xml contra o Maven Central.",
+      "p_prioridade": "P2"
+    }
+  ],
+  "pontos_fortes": [
+    {
+      "id": "PS-001",
+      "descricao": "Isolamento de tenant robusto em dupla camada",
+      "evidencia": "tenant/TenantScopedEntity.java (@TenantId + @PostLoad), tenant/TenantScopedRepository.java (findById via JPQL), tenant/TenantHibernateConfig.java",
+      "detalhe": "Camada 1: @TenantId do Hibernate filtra automaticamente todas as queries JPQL/derived. Camada 2: @PostLoad aborta caso EntityManager.find carregue linha de outro tenant. Sentinela NONE=-1 garante falha fechada quando TenantContext nao esta preenchido."
+    },
+    {
+      "id": "PS-002",
+      "descricao": "Tokens opacos armazenados apenas como hash SHA-256",
+      "evidencia": "shared/Hashing.java:sha256Hex(), auth/session/RefreshToken.java:token_hash, auth/token/TokenAcao.java:token_hash, auth/mfa/MfaRecoveryCode.java:codigo_hash",
+      "detalhe": "Refresh tokens, tokens de acao (verificacao de email, reset de senha) e codigos de recuperacao MFA nunca sao gravados em texto puro. Comprometimento do banco nao revela os valores originais."
+    },
+    {
+      "id": "PS-003",
+      "descricao": "BCrypt com salt para hashes de senha",
+      "evidencia": "security/SecurityConfig.java:BCryptPasswordEncoder(), auth/AuthService.java:dummyHash",
+      "detalhe": "Senhas em BCrypt. Anti-timing attack via dummyHash: mesmo quando o email nao existe, o tempo de resposta e equivalente ao de uma verificacao real."
+    },
+    {
+      "id": "PS-004",
+      "descricao": "Segredo TOTP criptografado em repouso (AES-256-GCM)",
+      "evidencia": "auth/mfa/SecretCipher.java",
+      "detalhe": "IV aleatorio por operacao, tag de autenticacao de 128 bits, chave de 256 bits validada na inicializacao. Comprometimento do banco nao expoe segredos TOTP."
+    },
+    {
+      "id": "PS-005",
+      "descricao": "Refresh token em cookie HttpOnly + SameSite=Strict + path restrito",
+      "evidencia": "auth/RefreshCookie.java",
+      "detalhe": "JavaScript nao pode ler o cookie. SameSite=Strict impede envio em requisicoes cross-site. Path=/api/v1/auth limita o escopo. Secure configuravel por ambiente."
+    },
+    {
+      "id": "PS-006",
+      "descricao": "Access token exclusivamente em memoria no frontend",
+      "evidencia": "frontend/src/app/core/auth/auth.service.ts:accessToken signal",
+      "detalhe": "Token nunca escrito em localStorage/sessionStorage. XSS nao consegue extrair o access token de armazenamento persistente."
+    },
+    {
+      "id": "PS-007",
+      "descricao": "Validacao de segredo de exemplo na inicializacao (jwt.secret)",
+      "evidencia": "config/AppProperties.java:Jwt record",
+      "detalhe": "Startup falha com mensagem clara se jwt.secret contiver o marcador 'troque'. Impede deploy acidental com segredo de exemplo."
+    },
+    {
+      "id": "PS-008",
+      "descricao": "Principio do minimo privilegio no banco de dados",
+      "evidencia": "database/post/grants.sql",
+      "detalhe": "Usuario de runtime (app_runtime) tem apenas SELECT/INSERT/UPDATE/DELETE. DENY explicito em schema_version e UPDATE/DELETE em evento_auditoria. Sem DDL."
+    },
+    {
+      "id": "PS-009",
+      "descricao": "GlobalExceptionHandler nao vaza informacoes internas",
+      "evidencia": "shared/GlobalExceptionHandler.java:unexpected()",
+      "detalhe": "Excecoes nao previstas retornam mensagem generica 'Erro interno'. Stack trace, SQL e mensagens de excecao ficam apenas no log com correlationId."
+    },
+    {
+      "id": "PS-010",
+      "descricao": "CorrelationIdFilter previne log injection",
+      "evidencia": "shared/CorrelationIdFilter.java:isValid()",
+      "detalhe": "Header X-Correlation-Id aceito apenas se corresponder a regex [A-Za-z0-9\\\\-]{8,64}. Valores maliciosos sao substituidos por UUID gerado internamente."
+    },
+    {
+      "id": "PS-011",
+      "descricao": "Anti-replay TOTP via mfa_ultimo_passo",
+      "evidencia": "auth/mfa/TotpService.java:verify(), user/Usuario.java:registrarPassoMfa()",
+      "detalhe": "Cada passo de tempo aceito e registrado. O mesmo codigo nao pode ser reutilizado, mesmo dentro da janela de tolerancia de +-1 passo."
+    },
+    {
+      "id": "PS-012",
+      "descricao": "Throttle distribuido persistido em banco",
+      "evidencia": "auth/throttle/ThrottleService.java, auth/throttle/LoginTentativaRepository.java",
+      "detalhe": "Rate limiting funciona com multiplas instancias da API. Chaves por email (hash), por IP e por usuario. Bloqueio sobrevive restart da aplicacao."
+    },
+    {
+      "id": "PS-013",
+      "descricao": "Revogacao imediata de sessao verificada a cada requisicao",
+      "evidencia": "security/JwtAuthenticationFilter.java:sessoes.estaAtiva()",
+      "detalhe": "Cada requisicao autenticada consulta o banco para verificar se a sessao continua ativa. Logout e revogacao valem instantaneamente sem esperar o JWT expirar."
+    },
+    {
+      "id": "PS-014",
+      "descricao": "Headers de seguranca HTTP no nginx",
+      "evidencia": "frontend/nginx/security-headers.conf",
+      "detalhe": "HSTS, X-Content-Type-Options, X-Frame-Options: DENY, Referrer-Policy, Permissions-Policy e CSP configurados. server_tokens off."
+    },
+    {
+      "id": "PS-015",
+      "descricao": "CI com varredura de vulnerabilidades (Trivy) em JAR e imagens Docker",
+      "evidencia": ".github/workflows/ci.yml",
+      "detalhe": "Trivy na versao fixa (0.58.0) varre JAR e imagens com --exit-code 1 para HIGH/CRITICAL. Execucao semanal agendada captura CVEs novos."
+    }
+  ]
+}
