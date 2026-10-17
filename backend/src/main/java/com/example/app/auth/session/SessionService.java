@@ -82,6 +82,10 @@ public class SessionService {
                         "refresh token reutilizado: sessao revogada");
                 throw BusinessException.unauthorized("Sessao expirada");
             }
+            // Dentro do grace period: tolerancia para abas concorrentes (ADR 0004).
+            // Auditado como aviso para deteccao de anomalias (pico = possivel roubo de cookie).
+            audit.falha(TipoEvento.REFRESH_REUSO_GRACE, user.getId(), user.getTenantId(), null,
+                    "refresh token reutilizado dentro do grace period");
         } else {
             token.marcarUsado(now);
         }
