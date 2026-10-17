@@ -3,27 +3,26 @@
 | | |
 |---|---|
 | **Projeto** | Casca genérica de produto (template para novos produtos) |
-| **Data de referência** | 2026-10-10 |
-| **Versão do documento** | 1.0 |
-| **Referência no código** | branch `main` — veja `git log` para o commit exato |
+| **Data de referência** | 2026-10-17 |
+| **Versão do documento** | 1.1 |
+| **Referência no código** | branch `main`, commit `8e3839f` |
 | **Escopo** | Backend (Spring Boot), frontend (Angular), banco (SQL Server), infraestrutura (Docker/CI) e segurança |
 
-> Este documento descreve o que **existe, foi testado e é verdadeiro hoje**, e diz com clareza o que **não** existe ou **não foi verificado**. Quando o estado mudar, atualize-o (regra 12 do `CLAUDE.md`).
+> Atualizado após as correções da auditoria de segurança. Nesta revisão, a compilação e a compilação dos testes do backend passaram. A suíte completa, os testes do frontend, a varredura de vulnerabilidades e o CI ainda precisam ser executados para este commit; os resultados anteriores abaixo são da revisão de 2026-10-10.
 
 ---
 
 ## 1. Resumo executivo
 
-A casca é um projeto-base pronto para clonar a cada produto novo. Entrega **autenticação completa e segura**, **multi-tenancy com isolamento testado**, **auditoria**, **banco com permissões mínimas**, **Docker**, **CI com varredura de vulnerabilidades** e uma **interface Angular** com layout padronizado.
+A casca é um projeto-base para novos produtos. Inclui autenticação, multi-tenancy, auditoria, banco com permissões mínimas, Docker, CI com varredura de vulnerabilidades e uma interface Angular. As correções desta revisão estão compiladas; a execução completa dos testes e do CI para o commit atual ainda está pendente.
 
 | Indicador | Situação |
 |---|---|
-| Testes do backend | **50 de 50 aprovados** (25 unitários + 25 de integração em SQL Server real) |
-| Testes do frontend | **24 de 24 aprovados** (5 arquivos) |
-| Build do backend / frontend | OK / OK (sem avisos) |
-| Teste ponta a ponta no navegador | Realizado (cadastro → confirmação por e-mail → login → recarregar → MFA → logout) |
-| **CI no GitHub Actions** | **Verde** (4 jobs: backend com testes em SQL Server real + Trivy no JAR; frontend; scripts SQL; imagens Docker + Trivy). Repositório: `jaasielsilva/GENERICO` (privado) |
-| Vulnerabilidades HIGH/CRITICAL | **0** no JAR, nas imagens e no `npm` — com **3 exceções documentadas** (§11) |
+| Compilação do backend e dos testes | **OK** após as correções (2026-10-17) |
+| Testes do backend e frontend | Último resultado: 50/50 e 24/24 em 2026-10-10; **não reexecutados** após as correções |
+| Build do frontend e teste ponta a ponta | Resultados anteriores em 2026-10-10; **não reexecutados** após as correções |
+| **CI no GitHub Actions** | Último resultado verde em 2026-10-10; **aguardando execução para o commit atual** |
+| Varredura de vulnerabilidades | Último resultado em 2026-10-10; **não repetida** após as correções |
 | Pronto para produção? | **Não sozinho.** É uma base segura para construir o produto; o checklist de lançamento (`docs/product/launch-checklist.md`) lista o que depende do seu ambiente (HTTPS real, segredos em cofre, SMTP, backup etc.) |
 
 ---
@@ -68,7 +67,7 @@ A casca é um projeto-base pronto para clonar a cada produto novo. Entrega **aut
 ## 4. Funcionalidades
 
 ### 4.1 Contas e autenticação
-- **Cadastro** (ligável/desligável por `REGISTRATION_ENABLED`), com validação e senha de 10 a 72 caracteres.
+- **Cadastro** (desabilitado por padrão; controlado por `REGISTRATION_ENABLED`), com validação e senha de 10 a 72 caracteres. Cada cadastro habilitado cria um tenant; a primeira conta recebe `ADMIN` dentro dele. Papel e tenant são definidos no servidor.
 - **Confirmação de e-mail obrigatória** antes do primeiro login (link de uso único, 24 h).
 - **Login** com mensagem de erro única (não revela se o e-mail existe) e tempo de resposta igualado.
 - **MFA (TOTP)**: configuração por QR code/chave manual, 8 códigos de recuperação (mostrados uma vez), login em duas etapas, desativação com senha + código.
@@ -77,11 +76,13 @@ A casca é um projeto-base pronto para clonar a cada produto novo. Entrega **aut
 - **Troca de senha** autenticada — mantém só a sessão atual.
 
 ### 4.2 Autorização
-- Papéis `USER` e `ADMIN`; `/api/v1/admin/**` só para `ADMIN`. O papel vem sempre do token/servidor (o auto-cadastro nunca cria `ADMIN`).
+- Papéis `USER` e `ADMIN`; `/api/v1/admin/**` só para `ADMIN`. O cadastro da primeira conta concede `ADMIN` apenas no tenant recém-criado; clientes não podem escolher papel ou tenant.
 
 ### 4.3 Multi-tenancy
-- Cada usuário pertence a um tenant; o tenant vai assinado no token e isola automaticamente os dados de negócio (§5, ADR 0003).
-- Módulo **`nota/`** é um **exemplo** (apague no produto real) que demonstra o padrão e o teste de isolamento.
+- Cada usuário pertence a um tenant; o tenant vai assinado no token e isola os dados de negócio (§5, ADR 0003).
+- O módulo **`nota/`** é um exemplo (apague no produto real). `USER` cria, consulta e exclui as próprias notas; `ADMIN` pode consultar e excluir notas de usuários do mesmo tenant.
+- A migration `009` separa em tenants individuais as contas legadas que compartilhavam o tenant padrão, move notas e eventos de auditoria pelo usuário e revoga as sessões existentes. A migration ainda não foi aplicada a ambientes nesta revisão.
+- O e-mail continua globalmente único para manter o login global atual. O cadastro duplicado responde de forma genérica; uma mesma pessoa não pode usar um único e-mail em mais de um tenant.
 
 ### 4.4 Auditoria
 Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): cadastro, login (sucesso/falha/MFA pendente), logout, logout de todos, reuso de refresh token, e-mail verificado, pedido/conclusão de redefinição de senha, troca de senha, MFA habilitado/desabilitado/falha, uso de código de recuperação. Cada evento guarda tipo, resultado, usuário, tenant, IP, `correlationId` e detalhe (**sem senhas/tokens/segredos**). Consulta: `GET /api/v1/admin/auditoria` (ADMIN, só do próprio tenant).
@@ -109,7 +110,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 | 6 | **Banco com menor privilégio** | A aplicação usa `app_runtime` (`db_datareader` + `db_datawriter`, sem DDL); `DENY UPDATE/DELETE` na auditoria e `DENY` de escrita em `schema_version`. O `sa` só roda o `apply.sh` | Verificado com `sqlcmd` como `app_runtime`: `DELETE/UPDATE` na auditoria, `UPDATE` em `schema_version`, `CREATE TABLE`, `DROP TABLE` → todos negados; leitura funciona; a aplicação sobe e opera nesse usuário |
 | 7 | **Auditoria** | Ver §4.4 | `auditoriaRegistraFalhasDeLoginComEmailEIpMasSemSenha`, `areaAdminEAuditoriaSoParaAdminESoDoProprioTenant` |
 | 8 | **Varredura de dependências** | Trivy no JAR (todas as bibliotecas, inclusive transitivas) e nas imagens + `npm audit` no CI e toda segunda-feira; Dependabot semanal | Execução local (§11) |
-| 9 | **Multi-tenancy** | `@TenantId` + `TenantScopedRepository` + verificação `@PostLoad`; tenant só do token | `tenantNaoEnxergaDadosDeOutroTenantPorListagemIdOuExclusao` (**pegou uma falha real**, corrigida: o `findById` padrão não filtra tenant) |
+| 9 | **Multi-tenancy e posse** | `@TenantId` + `TenantScopedRepository`; cadastro cria tenant independente; endpoints de notas conferem posse (ADMIN pode ver notas do próprio tenant) | Testes de isolamento e posse atualizados; execução após as mudanças ainda pendente |
 
 ### Outros controles já ativos
 - **Senhas** em BCrypt; tokens (refresh, e-mail, recuperação, códigos do MFA) guardados só como **hash SHA-256**; segredo TOTP **criptografado** (AES-256-GCM) com chave fora do banco.
@@ -136,7 +137,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 | 6. Banco com usuário de menor privilégio | ✅ Implementado e verificado. `trustServerCertificate` permanece `true` **apenas** no Docker local; produção exige certificado válido (checklist) |
 | 7. Auditoria de eventos | ✅ Implementada e testada |
 | 8. Varredura de dependências no CI | ✅ Implementada (Trivy JAR/imagens, `npm audit`, Dependabot) e **executada com sucesso no GitHub Actions**. (As duas primeiras execuções falharam por um erro do instalador da *action* do Trivy — não por vulnerabilidade; trocado pelo contêiner oficial do Trivy, na versão validada localmente) |
-| 9. Multi-tenancy | ✅ Implementado, testado e com um achado real corrigido |
+| 9. Multi-tenancy e posse | ✅ Correções implementadas; testes atualizados, mas ainda não executados após esta revisão |
 
 ---
 
@@ -155,8 +156,9 @@ Scripts em `database/scripts/` (ver `database/README.md`):
 | 006 | `login_tentativa` |
 | 007 | `evento_auditoria` |
 | 008 | `nota` (**exemplo** de entidade com tenant) |
+| 009 | Provisiona sequência de tenants, separa usuários legados e revoga suas sessões |
 
-A migração `002`–`008` foi aplicada com sucesso **sobre um banco que já tinha dados** (a conta pré-existente continuou funcionando).
+A migrações `002`–`008` foram aplicadas com sucesso em revisão anterior sobre um banco com dados. A migration `009` inclui alterações de dados e revogação de sessões; faça backup e valide-a em homologação antes de aplicar em produção.
 
 ---
 
