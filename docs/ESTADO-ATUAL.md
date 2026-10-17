@@ -5,10 +5,10 @@
 | **Projeto** | Casca genérica de produto (template para novos produtos) |
 | **Data de referência** | 2026-10-17 |
 | **Versão do documento** | 1.1 |
-| **Referência no código** | branch `main`, commit `8e3839f` |
+| **Referência no código** | branch `main`, correção `8e3839f`; documentação revisada em `0b71a6e` |
 | **Escopo** | Backend (Spring Boot), frontend (Angular), banco (SQL Server), infraestrutura (Docker/CI) e segurança |
 
-> Atualizado após as correções da auditoria de segurança. Nesta revisão, a compilação e a compilação dos testes do backend passaram. A suíte completa, os testes do frontend, a varredura de vulnerabilidades e o CI ainda precisam ser executados para este commit; os resultados anteriores abaixo são da revisão de 2026-10-10.
+> Atualizado após as correções da auditoria. O CI do commit `0b71a6e` passou nos quatro jobs, incluindo testes e build do backend e frontend, validação dos scripts SQL, build das imagens e varreduras de vulnerabilidades. A migration `009` foi aplicada no banco descartável do CI; ainda deve ser validada em homologação com dados existentes antes de produção.
 
 ---
 
@@ -18,11 +18,11 @@ A casca é um projeto-base para novos produtos. Inclui autenticação, multi-ten
 
 | Indicador | Situação |
 |---|---|
-| Compilação do backend e dos testes | **OK** após as correções (2026-10-17) |
-| Testes do backend e frontend | Último resultado: 50/50 e 24/24 em 2026-10-10; **não reexecutados** após as correções |
-| Build do frontend e teste ponta a ponta | Resultados anteriores em 2026-10-10; **não reexecutados** após as correções |
-| **CI no GitHub Actions** | Último resultado verde em 2026-10-10; **aguardando execução para o commit atual** |
-| Varredura de vulnerabilidades | Último resultado em 2026-10-10; **não repetida** após as correções |
+| Testes e build do backend | **Passaram no CI** do commit `0b71a6e` |
+| Testes e build do frontend | **Passaram no CI** do commit `0b71a6e` |
+| Scripts SQL e migration `009` | **Validados no CI** em banco descartável; homologação com dados existentes pendente |
+| Varredura de vulnerabilidades | Jobs Trivy e `npm audit` **passaram no CI** do commit `0b71a6e` |
+| **CI no GitHub Actions** | **Verde**, 4 jobs concluídos com sucesso (run `38997980885`) |
 | Pronto para produção? | **Não sozinho.** É uma base segura para construir o produto; o checklist de lançamento (`docs/product/launch-checklist.md`) lista o que depende do seu ambiente (HTTPS real, segredos em cofre, SMTP, backup etc.) |
 
 ---
