@@ -6,6 +6,7 @@ import com.example.app.shared.CorrelationIdFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -39,6 +40,14 @@ public class SecurityConfig {
             "/api/v1/auth/verify-email", "/api/v1/auth/resend-verification"
     };
 
+    /** Paths do Swagger/OpenAPI — liberados SOMENTE quando springdoc.swagger-ui.enabled=true (SEC-001). */
+    private static final String[] SWAGGER_PATHS = {
+            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+    };
+
+    @Value("${springdoc.swagger-ui.enabled:false}")
+    private boolean swaggerEnabled;
+
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, SessaoRepository sessoes,
                                     ObjectMapper mapper) throws Exception {
@@ -52,12 +61,17 @@ public class SecurityConfig {
                         .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(63_072_000))
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
                         .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
-                .authorizeHttpRequests(a -> a
-                        .requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/config").permitAll()
-                        .requestMatchers("/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(a -> {
+                    a.requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
+                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/config").permitAll()
+                     .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness").permitAll();
+                    // Swagger: so acessivel quando explicitamente habilitado (nunca em producao) — SEC-001.
+                    if (swaggerEnabled) {
+                        a.requestMatchers(SWAGGER_PATHS).permitAll();
+                    }
+                    a.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                     .anyRequest().authenticated();
+                })
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) ->
                                 write(res, mapper, HttpStatus.UNAUTHORIZED, "Nao autenticado"))
