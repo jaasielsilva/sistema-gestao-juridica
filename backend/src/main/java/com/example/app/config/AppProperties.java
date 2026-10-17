@@ -46,6 +46,14 @@ public record AppProperties(
     }
 
     public record Mfa(@NotBlank String issuer, @NotBlank String encryptionKey) {
+
+        public Mfa {
+            if (encryptionKey != null && encryptionKey.toLowerCase(Locale.ROOT).contains("troque")) {
+                throw new IllegalArgumentException(
+                        "app.mfa.encryption-key nao pode conter marcadores de segredo de exemplo. " +
+                        "Gere uma chave real com: openssl rand -base64 32");
+            }
+        }
     }
 
     public record Mail(@NotBlank String from, boolean logBody) {

@@ -29,6 +29,12 @@ server:
   # "native": o Tomcat confia em X-Forwarded-* apenas de proxies internos (rede privada/Docker).
   # Use FORWARD_HEADERS_STRATEGY=native atras de nginx/load balancer, para IP real e HTTPS corretos.
   forward-headers-strategy: ${FORWARD_HEADERS_STRATEGY:none}
+  # Lista de IPs/ranges que podem ser proxies confiaveis para X-Forwarded-For (SEC-004).
+  # O default cobre redes privadas RFC-1918 e loopback (Docker, Kubernetes, nginx local).
+  # Em producao, restrinja ao range real do seu load balancer/nginx.
+  tomcat:
+    remoteip:
+      internal-proxies: ${TOMCAT_INTERNAL_PROXIES:10\\.\\d+\\.\\d+\\.\\d+|192\\.168\\.\\d+\\.\\d+|172\\.(1[6-9]|2\\d|3[01])\\.\\d+\\.\\d+|127\\.\\d+\\.\\d+\\.\\d+}
   error:
     include-message: never
     include-stacktrace: never
@@ -39,6 +45,13 @@ management:
     web:
       exposure:
         include: health,info
+  endpoint:
+    health:
+      # Nunca expor detalhes internos (banco, disco, dependencias) publicamente — SEC-002.
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
 
 app:
   # URL publica do frontend, usada nos links enviados por e-mail.
@@ -54,8 +67,8 @@ app:
     days: ${REFRESH_DAYS:7}
     # Cookie Secure exige HTTPS (localhost e excecao nos navegadores modernos). Em producao: true.
     cookie-secure: ${COOKIE_SECURE:true}
-    # Tolerancia para duas abas renovarem juntas com o mesmo cookie. Alem disso, reuso = roubo = sessao revogada.
-    reuse-grace-seconds: ${REFRESH_REUSE_GRACE_SECONDS:10}
+    # Tolerancia para duas abas renovarem juntas com o mesmo cookie (ADR 0004). Alem disso, reuso = roubo = sessao revogada.
+    reuse-grace-seconds: ${REFRESH_REUSE_GRACE_SECONDS:5}
   throttle:
     max-login-per-email: ${THROTTLE_LOGIN_PER_EMAIL:5}
     max-login-per-ip: ${THROTTLE_LOGIN_PER_IP:30}
