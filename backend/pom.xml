@@ -12,10 +12,10 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.example</groupId>
-    <artifactId>app</artifactId>
+    <groupId>br.com.jaasielsilva</groupId>
+    <artifactId>sistema-gestao-juridica</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>app</name>
+    <name>sistema-gestao-juridica</name>
     <description>Casca generica de produto: Spring Boot + SQL Server + JWT</description>
 
     <properties>
