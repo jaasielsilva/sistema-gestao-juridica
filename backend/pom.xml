@@ -21,7 +21,7 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <springdoc.version>2.8.9</springdoc.version>
+        <springdoc.version>3.1.1</springdoc.version>
         <!-- Corrige CVE-2025-59250 (versao gerenciada pelo Boot era 12.6.4) -->
         <mssql-jdbc.version>12.10.2.jre11</mssql-jdbc.version>
         <!-- Correcoes de seguranca adiantadas em relacao ao BOM do Boot (varredura do JAR com Trivy; revisar a cada upgrade) -->
