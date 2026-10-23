@@ -5,7 +5,24 @@ Template para iniciar um produto com **Spring Boot 3.5, Java 21, SQL Server, Ang
 ## Início rápido
 
 1. Copie `.env.example` para `.env`.
-2. Gere segredos próprios e substitua `JWT_SECRET`, `MFA_ENCRYPTION_KEY`, `DB_PASSWORD` e `APP_DB_PASSWORD`. A API recusa o segredo JWT de exemplo.
+2. Gere os segredos no PowerShell do Windows com o gerador criptográfico nativo:
+
+   ```powershell
+   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+
+   $jwtBytes = New-Object byte[] 48
+   $rng.GetBytes($jwtBytes)
+
+   $mfaBytes = New-Object byte[] 32
+   $rng.GetBytes($mfaBytes)
+
+   "JWT_SECRET=$([Convert]::ToBase64String($jwtBytes))"
+   "MFA_ENCRYPTION_KEY=$([Convert]::ToBase64String($mfaBytes))"
+
+   $rng.Dispose()
+   ```
+
+   Copie os valores exibidos para `JWT_SECRET` e `MFA_ENCRYPTION_KEY` no `.env`. Não compartilhe nem versione esses valores. Substitua também `DB_PASSWORD` e `APP_DB_PASSWORD` por senhas próprias. A API recusa o segredo JWT de exemplo.
 3. Inicie os serviços:
 
    ```bash
