@@ -1,0 +1,80 @@
+<main class="login-page">
+  <section class="login-intro" aria-label="Apresentação">
+    <div class="login-brand login-brand--intro">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M16 3 28 9.5v13L16 29 4 22.5v-13L16 3Z" />
+          <path d="M10 12.5 16 9l6 3.5v7L16 23l-6-3.5v-7Z" />
+          <path d="M16 9v14" />
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <strong>{{ appName }}</strong>
+        <span>Gestão com segurança</span>
+      </span>
+    </div>
+
+    <div class="intro-copy">
+      <span class="intro-accent" aria-hidden="true"></span>
+      <h1>Gestão com<br /><span>clareza e controle</span></h1>
+      <p>
+        Acesse sua plataforma e mantenha as informações da sua equipe organizadas em um só lugar.
+      </p>
+
+      <ul class="intro-benefits">
+        <li>
+          <mat-icon aria-hidden="true">description</mat-icon>
+          <span><strong>Organização</strong><small>Informações em ordem</small></span>
+        </li>
+        <li>
+          <mat-icon aria-hidden="true">event</mat-icon>
+          <span><strong>Agilidade</strong><small>Uma rotina mais simples</small></span>
+        </li>
+        <li>
+          <mat-icon aria-hidden="true">groups</mat-icon>
+          <span><strong>Equipe</strong><small>Acesso para sua equipe</small></span>
+        </li>
+        <li>
+          <mat-icon aria-hidden="true">verified_user</mat-icon>
+          <span><strong>Segurança</strong><small>Proteção da sua conta</small></span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="intro-footer">
+      <span aria-hidden="true"></span>
+      <div>
+        <strong>{{ appName }}</strong>
+        <small>TECNOLOGIA A SERVIÇO DA JUSTIÇA</small>
+      </div>
+    </div>
+    <div class="intro-decoration" aria-hidden="true"></div>
+  </section>
+
+  <section class="login-panel">
+    <div class="login-panel__content">
+      <div class="login-brand login-brand--panel">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none">
+            <path d="M16 3 28 9.5v13L16 29 4 22.5v-13L16 3Z" />
+            <path d="M10 12.5 16 9l6 3.5v7L16 23l-6-3.5v-7Z" />
+            <path d="M16 9v14" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>{{ appName }}</strong>
+          <span>Gestão com segurança</span>
+        </span>
+      </div>
+
+      <h2>{{ heading() }}</h2>
+      <p class="login-description">{{ description() }}</p>
+      <ng-content />
+      <div class="privacy-note">
+        <mat-icon aria-hidden="true">lock</mat-icon>
+        <span>Seus dados são protegidos e tratados com segurança.</span>
+      </div>
+    </div>
+    <span class="version-label">Acesso seguro</span>
+  </section>
+</main>

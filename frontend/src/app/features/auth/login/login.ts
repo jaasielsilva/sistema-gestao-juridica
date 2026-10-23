@@ -9,7 +9,7 @@ import { Observable } from 'rxjs';
 import { apiErrorMessage } from '../../../core/auth/api-error';
 import { LoginResult } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AuthPage } from '../../../shared/auth-page/auth-page';
+import { BrandedAuthPage } from '../../../shared/branded-auth-page/branded-auth-page';
 
 @Component({
   selector: 'app-login',
@@ -19,7 +19,7 @@ import { AuthPage } from '../../../shared/auth-page/auth-page';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    AuthPage,
+    BrandedAuthPage,
   ],
   templateUrl: './login.html',
 })

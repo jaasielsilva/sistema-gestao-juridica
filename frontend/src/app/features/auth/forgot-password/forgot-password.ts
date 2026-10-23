@@ -5,7 +5,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../../core/auth/api-error';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AuthPage } from '../../../shared/auth-page/auth-page';
+import { BrandedAuthPage } from '../../../shared/branded-auth-page/branded-auth-page';
 
 @Component({
   selector: 'app-forgot-password',
@@ -14,7 +14,7 @@ import { AuthPage } from '../../../shared/auth-page/auth-page';
     RouterLink,
     MatButtonModule,
     MatProgressSpinnerModule,
-    AuthPage,
+    BrandedAuthPage,
   ],
   templateUrl: './forgot-password.html',
 })
