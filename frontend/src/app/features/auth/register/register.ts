@@ -1,12 +1,13 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../../core/auth/api-error';
 import { PASSWORD_MAX, PASSWORD_MIN } from '../../../core/auth/auth.models';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AuthPage } from '../../../shared/auth-page/auth-page';
+import { BrandedAuthPage } from '../../../shared/branded-auth-page/branded-auth-page';
 import { passwordsMatch } from '../../../shared/password-match';
 
 @Component({
@@ -15,8 +16,9 @@ import { passwordsMatch } from '../../../shared/password-match';
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
+    MatIconModule,
     MatProgressSpinnerModule,
-    AuthPage,
+    BrandedAuthPage,
   ],
   templateUrl: './register.html',
 })

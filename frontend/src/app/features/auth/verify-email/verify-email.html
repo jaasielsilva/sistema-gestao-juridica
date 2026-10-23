@@ -1,4 +1,7 @@
-<app-auth-page subtitle="Confirmação de e-mail">
+<app-branded-auth-page
+  heading="Confirmação de e-mail"
+  description="Estamos validando o link enviado para o seu endereço de e-mail."
+>
   <div class="form-stack">
     @switch (state()) {
       @case ('loading') {
@@ -16,4 +19,4 @@
       }
     }
   </div>
-</app-auth-page>
+</app-branded-auth-page>

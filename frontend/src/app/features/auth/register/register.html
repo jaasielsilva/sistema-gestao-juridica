@@ -1,4 +1,7 @@
-<app-auth-page subtitle="Criar conta">
+<app-branded-auth-page
+  heading="Crie sua conta"
+  description="Cadastre sua organização para começar a usar a plataforma com segurança."
+>
   @if (sentTo(); as email) {
     <div class="form-stack">
       <p class="form-success" role="status">
@@ -10,22 +13,65 @@
     <form class="form-stack" [formGroup]="form" (ngSubmit)="submit()" ngNativeValidate>
       <div class="auth-field">
         <label class="auth-label" for="nome">Nome</label>
-        <input class="auth-input" required id="nome" formControlName="nome" autocomplete="name" autofocus />
+        <div class="auth-input-wrap">
+          <mat-icon aria-hidden="true">person_outline</mat-icon>
+          <input
+            class="auth-input"
+            required
+            id="nome"
+            formControlName="nome"
+            autocomplete="name"
+            placeholder="Seu nome completo"
+            autofocus
+          />
+        </div>
       </div>
 
       <div class="auth-field">
         <label class="auth-label" for="organizacao">Organizacao</label>
-        <input class="auth-input" required id="organizacao" formControlName="organizacao" autocomplete="organization" />
+        <div class="auth-input-wrap">
+          <mat-icon aria-hidden="true">business</mat-icon>
+          <input
+            class="auth-input"
+            required
+            id="organizacao"
+            formControlName="organizacao"
+            autocomplete="organization"
+            placeholder="Nome do escritório ou empresa"
+          />
+        </div>
       </div>
 
       <div class="auth-field">
         <label class="auth-label" for="email">E-mail</label>
-        <input class="auth-input" required id="email" type="email" formControlName="email" autocomplete="email" />
+        <div class="auth-input-wrap">
+          <mat-icon aria-hidden="true">mail_outline</mat-icon>
+          <input
+            class="auth-input"
+            required
+            id="email"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            placeholder="voce@exemplo.com"
+          />
+        </div>
       </div>
 
       <div class="auth-field">
         <label class="auth-label" for="senha">Senha</label>
-        <input class="auth-input" required id="senha" type="password" formControlName="senha" autocomplete="new-password" />
+        <div class="auth-input-wrap">
+          <mat-icon aria-hidden="true">lock_outline</mat-icon>
+          <input
+            class="auth-input"
+            required
+            id="senha"
+            type="password"
+            formControlName="senha"
+            autocomplete="new-password"
+            placeholder="Crie uma senha"
+          />
+        </div>
         @if (form.controls.senha.touched && form.controls.senha.invalid) {
           <span class="auth-error">A senha precisa ter de {{ passwordMin }} a 72 caracteres</span>
         } @else {
@@ -35,7 +81,18 @@
 
       <div class="auth-field">
         <label class="auth-label" for="confirmar">Confirmar senha</label>
-        <input class="auth-input" required id="confirmar" type="password" formControlName="confirmar" autocomplete="new-password" />
+        <div class="auth-input-wrap">
+          <mat-icon aria-hidden="true">lock_outline</mat-icon>
+          <input
+            class="auth-input"
+            required
+            id="confirmar"
+            type="password"
+            formControlName="confirmar"
+            autocomplete="new-password"
+            placeholder="Digite a senha novamente"
+          />
+        </div>
         @if (form.hasError('mismatch') && form.controls.confirmar.touched) {
           <span class="auth-error">As senhas não conferem</span>
         }
@@ -53,9 +110,7 @@
         }
       </button>
 
-      <div class="form-links">
-        <a routerLink="/login">Já tenho conta</a>
-      </div>
+      <p class="register-link">Já tem uma conta? <a routerLink="/login">Entrar</a></p>
     </form>
   }
-</app-auth-page>
+</app-branded-auth-page>
