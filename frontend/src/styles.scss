@@ -13,6 +13,14 @@ html {
       density: 0,
     )
   );
+
+  // Cor da marca (verde-petroleo do login). Declarada depois do tema: os tokens dos componentes
+  // que referenciam --mat-sys-primary passam a usar este valor.
+  --mat-sys-primary: #008f78;
+  --mat-sys-on-primary: #fff;
+  --mat-sys-primary-container: #cdeee6;
+  --mat-sys-on-primary-container: #00382e;
+  --mat-sys-surface-tint: #008f78;
 }
 
 body {
@@ -26,6 +34,17 @@ body {
 }
 
 // ---- Padroes globais reutilizados pelas telas ----
+// Area de conteudo da Shell: telas comuns mantem o tamanho natural; telas de lista (host com a classe
+// `fill-page`) ocupam a altura restante e rolam por dentro, deixando a paginacao sempre visivel.
+.shell__content > * {
+  flex-shrink: 0;
+}
+
+.shell__content > .fill-page {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .page-title {
   font: var(--mat-sys-headline-medium);
   margin: 0 0 16px;

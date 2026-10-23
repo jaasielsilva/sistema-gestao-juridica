@@ -1,10 +1,74 @@
-<nav aria-label="Navegação principal">
-  <mat-nav-list>
-    @for (item of items(); track item.route) {
-      <a mat-list-item [routerLink]="item.route" routerLinkActive="sidebar__active" (click)="navigated.emit()">
-        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-        <span matListItemTitle>{{ item.label }}</span>
-      </a>
+<div class="sidebar">
+  <a class="sidebar__brand" routerLink="/inicio" (click)="navigated.emit()">
+    <svg class="sidebar__logo" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <path d="M20 6v26M13 33h14M20 9H9m22 0H20" />
+      <path d="M9 9 4 21a5 5 0 0 0 10 0L9 9Zm22 0-5 12a5 5 0 0 0 10 0L31 9Z" />
+      <circle cx="20" cy="6" r="1.6" />
+    </svg>
+    <span class="sidebar__brand-copy">
+      <strong>{{ appName }}</strong>
+      <small>Gestão com segurança</small>
+    </span>
+  </a>
+
+  <nav class="sidebar__nav" aria-label="Navegação principal">
+    @for (item of items(); track item.label) {
+      <div class="nav-item" [class.nav-item--bottom]="item.bottom">
+      @if (item.children) {
+        <button
+          type="button"
+          class="nav-link nav-link--group"
+          [class.is-open]="isOpen(item)"
+          [attr.aria-expanded]="isOpen(item)"
+          (click)="toggle(item)"
+        >
+          <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+          <mat-icon class="nav-link__chevron" aria-hidden="true">expand_more</mat-icon>
+        </button>
+        @if (isOpen(item)) {
+          <div class="nav-sub">
+            @for (child of item.children; track child.label) {
+              <a
+                class="nav-link nav-link--child"
+                [routerLink]="child.route"
+                routerLinkActive="is-active"
+                (click)="navigated.emit()"
+              >
+                <mat-icon aria-hidden="true">{{ child.icon }}</mat-icon>
+                <span>{{ child.label }}</span>
+              </a>
+            }
+          </div>
+        }
+      } @else {
+        <a class="nav-link" [routerLink]="item.route" routerLinkActive="is-active" (click)="navigated.emit()">
+          <mat-icon aria-hidden="true">{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+      </div>
     }
-  </mat-nav-list>
-</nav>
+  </nav>
+
+  @if (auth.user(); as user) {
+    <button type="button" class="user-card" [matMenuTriggerFor]="userMenu" aria-label="Menu do usuário">
+      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="user-card__copy">
+        <strong>{{ user.nome }}</strong>
+        <small>{{ papelLabel() }}</small>
+      </span>
+      <mat-icon aria-hidden="true">expand_more</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu" yPosition="above">
+      <div class="user-menu__info" role="presentation">
+        <strong>{{ user.nome }}</strong>
+        <span>{{ user.email }}</span>
+      </div>
+      <button mat-menu-item type="button" (click)="auth.logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Sair</span>
+      </button>
+    </mat-menu>
+  }
+</div>
