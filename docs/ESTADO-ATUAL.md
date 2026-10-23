@@ -2,11 +2,13 @@
 
 | | |
 |---|---|
-| **Projeto** | Casca genérica de produto (template para novos produtos) |
-| **Data de referência** | 2026-10-17 |
-| **Versão do documento** | 1.1 |
-| **Referência no código** | branch `main`, correção `8e3839f`; documentação revisada em `0b71a6e` |
+| **Projeto** | Sistema de Gestão Jurídica (derivado da casca genérica de produto) |
+| **Data de referência** | 2026-10-23 |
+| **Versão do documento** | 1.2 |
+| **Referência no código** | branch `main`, commit `35f2c58` (merge do módulo de clientes); CI validado até `0b71a6e` |
 | **Escopo** | Backend (Spring Boot), frontend (Angular), banco (SQL Server), infraestrutura (Docker/CI) e segurança |
+
+> **Revisão 1.2 (2026-10-23):** entraram o módulo de **clientes** (migration `010`, API `/clientes`, telas em `features/clientes`), o novo layout da área logada e o rename do produto. Esse código **ainda não teve testes/CI confirmados nesta revisão**; os indicadores abaixo referem-se ao commit `0b71a6e`.
 
 > Atualizado após as correções da auditoria. O CI do commit `0b71a6e` passou nos quatro jobs, incluindo testes e build do backend e frontend, validação dos scripts SQL, build das imagens e varreduras de vulnerabilidades. A migration `009` foi aplicada no banco descartável do CI; ainda deve ser validada em homologação com dados existentes antes de produção.
 
@@ -80,6 +82,7 @@ A casca é um projeto-base para novos produtos. Inclui autenticação, multi-ten
 
 ### 4.3 Multi-tenancy
 - Cada usuário pertence a um tenant; o tenant vai assinado no token e isola os dados de negócio (§5, ADR 0003).
+- O módulo **`cliente/`** é o primeiro módulo de negócio real (pessoa física/jurídica, CPF/CNPJ único por tenant, validação de documento em `Documento`). Listar/consultar/criar/editar: qualquer autenticado; inativar/reativar: `ADMIN` (não há exclusão). Tem teste de integração (`ClienteIntegrationTest`) e unitário (`DocumentoTest`).
 - O módulo **`nota/`** é um exemplo (apague no produto real). `USER` cria, consulta e exclui as próprias notas; `ADMIN` pode consultar e excluir notas de usuários do mesmo tenant.
 - A migration `009` separa em tenants individuais as contas legadas que compartilhavam o tenant padrão, move notas e eventos de auditoria pelo usuário e revoga as sessões existentes. A migration ainda não foi aplicada a ambientes nesta revisão.
 - O e-mail continua globalmente único para manter o login global atual. O cadastro duplicado responde de forma genérica; uma mesma pessoa não pode usar um único e-mail em mais de um tenant.
@@ -89,7 +92,8 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 
 ### 4.5 Frontend
 - Telas públicas: login (com etapa de MFA), cadastro, esqueci a senha, redefinir senha, confirmar e-mail.
-- Área logada: layout com **cabeçalho**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
+- Área logada: layout com **cabeçalho**, **breadcrumb**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
+- **Clientes** (`features/clientes`): listagem paginada com busca e filtros (`/clientes`), cadastro (`/clientes/novo`) e edição (`/clientes/:id/editar`); máscaras/formatação de CPF/CNPJ/telefone em `shared/br-format.ts`.
 - Guards de rota, interceptor (token, renovação automática em 401, `X-Requested-With`), tratamento de erros sem expor detalhes técnicos.
 
 ### 4.6 Operação
@@ -205,7 +209,9 @@ Obrigatórias no backend: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` (≥ 
 | `SecretCipherTest` | 4 | AES-GCM, IV aleatório, adulteração, chave inválida |
 | `AuthIntegrationTest` | 24 | fluxos completos em SQL Server real (§5) |
 | `RegistrationDisabledIntegrationTest` | 1 | cadastro desligado |
-| Frontend (5 arquivos) | 24 | serviço de autenticação, interceptor (renovação única em 401), guards, login (MFA, reenvio), cadastro |
+| `ClienteIntegrationTest` | 11 | módulo de clientes em SQL Server real |
+| `DocumentoTest` | 6 | validação de CPF/CNPJ |
+| Frontend (6 arquivos) | 29 | serviço de autenticação, interceptor (renovação única em 401), guards, login (MFA, reenvio), cadastro, formatação BR (`br-format`) |
 
 O banco de teste é criado a partir dos **scripts reais** e o Hibernate roda com `validate`: se uma entidade divergir do SQL, os testes falham.
 
@@ -269,6 +275,7 @@ Comandos reproduzíveis estão no `CLAUDE.md`/CI. Resultado final: **0 HIGH/CRIT
 - **Execução agendada do CI** (toda segunda, 09:00 UTC): configurada, mas ainda não houve uma execução agendada. O Trivy do CI usa a versão fixa 0.58.0 (precisa ser atualizada manualmente de tempos em tempos).
 - **Proteção de branch** no GitHub (exigir CI verde antes de mesclar): não configurada.
 - **`HousekeepingJob`** (limpeza diária): sem teste automatizado.
+- **Módulo de clientes**: os 17 testes do backend e os 5 de `br-format` foram escritos mas não executados nesta revisão; sem testes das telas `clientes-list`/`cliente-form`; migration `010` não validada em homologação; desempenho com os scripts de `database/seed` não medido.
 - **Frontend**: sem testes automatizados para as telas *esqueci/redefinir senha*, *confirmar e-mail* e *Segurança* (o fluxo foi exercitado manualmente no navegador).
 - **Carga/desempenho**, **teste de intrusão** e **revisão de segurança independente**: não realizados.
 - **Rodar contra o SQL Server local do usuário** (`GENERICOPRIVILEGIADO`): não executado (exigiria credenciais); há passo a passo no `README.md`.
@@ -281,8 +288,8 @@ Comandos reproduzíveis estão no `CLAUDE.md`/CI. Resultado final: **0 HIGH/CRIT
 ```bash
 cp .env.example .env            # troque DB_PASSWORD, APP_DB_PASSWORD, JWT_SECRET, MFA_ENCRYPTION_KEY
 docker compose up --build       # app :3000 · API :8080 · e-mails de teste :8025
-cd backend  && mvn verify                  # 50 testes (exige Docker)
-cd frontend && npx ng test --watch=false   # 24 testes
+cd backend  && mvn verify                  # 50 testes + 17 de clientes (exige Docker)
+cd frontend && npx ng test --watch=false   # 29 testes
 ```
 Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preencha `CLAUDE.md` e `docs/product/PRD.md`, remova o módulo `nota/` e siga o `launch-checklist.md`.
 
@@ -303,10 +310,10 @@ Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preenc
 ## 16. Estrutura do repositório
 
 ```
-backend/            API Spring Boot (auth/, user/, security/, tenant/, audit/, mail/, shared/, nota/ [exemplo])
+backend/            API Spring Boot (auth/, user/, security/, tenant/, audit/, mail/, shared/, cliente/, nota/ [exemplo])
 frontend/           Angular (core/, layout/, features/, shared/) + nginx (nginx/*.conf) + Dockerfile
-database/           scripts/ (000–008), post/grants.sql, apply.sh, README.md
-docs/               ESTADO-ATUAL.md (este), adr/ (0001–0003), product/ (PRD, checklist de lançamento)
+database/           scripts/ (000–010), seed/ (carga de clientes para teste de desempenho), post/grants.sql, apply.sh, README.md
+docs/               ESTADO-ATUAL.md (este), adr/ (0001–0004), product/ (PRD, checklist de lançamento)
 infrastructure/https/  gerador de certificado autoassinado (teste local)
 scripts/            init-project.ps1
 .github/            workflows/ci.yml, dependabot.yml

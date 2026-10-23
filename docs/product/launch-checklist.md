@@ -27,9 +27,10 @@ Legenda: ✅ a casca já entrega · 🔧 você precisa configurar no seu ambient
 - ⬜ Se houver um administrador de banco não confiável: auditoria em armazenamento WORM/SIEM (a casca só impede alteração pelo usuário da aplicação)
 
 ## Multi-tenancy (se o produto for SaaS)
-- ✅ Isolamento automático por tenant com testes negativos (módulo `nota/` como exemplo)
+- ✅ Isolamento automático por tenant com testes negativos (módulos `cliente/` e `nota/`)
 - ⬜ Fluxo de criação de tenants e convite de usuários (hoje o auto-cadastro cai no tenant padrão)
-- ⬜ Teste de isolamento para **cada** módulo novo
+- ⬜ Teste de isolamento para **cada** módulo novo (`cliente/` já tem)
+- ⬜ Validar a migration `010` (clientes) e medir desempenho da listagem com a carga de `database/seed`
 
 ## Operação
 - 🔧 Health check (`/actuator/health`) monitorado
