@@ -1,0 +1,147 @@
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>groups</mat-icon></span>
+  <div class="page-header__text">
+    <h1>Clientes</h1>
+    <p>Cadastre e acompanhe os clientes do escritório.</p>
+  </div>
+  <a mat-flat-button routerLink="/clientes/novo" class="page-header__action">
+    <mat-icon>add</mat-icon>
+    Novo cliente
+  </a>
+</header>
+
+<ul class="stats" aria-label="Resumo dos clientes">
+  @for (c of cartoes(); track c.rotulo) {
+    <li class="stat">
+      <span class="stat__icon" aria-hidden="true"><mat-icon>{{ c.icone }}</mat-icon></span>
+      <span class="stat__text">
+        <small>{{ c.rotulo }}</small>
+        <strong>{{ c.valor ?? '—' }}</strong>
+      </span>
+    </li>
+  }
+</ul>
+
+<section class="panel">
+  <div class="filters">
+    <label class="filters__search">
+      <mat-icon aria-hidden="true">search</mat-icon>
+      <input type="search" [formControl]="busca" placeholder="Buscar por nome, CPF/CNPJ ou e-mail" aria-label="Buscar clientes" />
+    </label>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filters__select">
+      <mat-label>Tipo</mat-label>
+      <mat-select [formControl]="tipo">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="PF">Pessoa física</mat-option>
+        <mat-option value="PJ">Pessoa jurídica</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filters__select">
+      <mat-label>Situação</mat-label>
+      <mat-select [formControl]="status">
+        <mat-option value="ativos">Ativos</mat-option>
+        <mat-option value="inativos">Inativos</mat-option>
+        <mat-option value="todos">Todos</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (error(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="clientes()" aria-label="Lista de clientes">
+      <ng-container matColumnDef="nome">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let c">
+          <a class="client" [routerLink]="['/clientes', c.id, 'editar']">
+            <span class="avatar" aria-hidden="true">{{ iniciais(c.nome) }}</span>
+            <span class="client__text">
+              <strong>{{ c.nome }}</strong>
+              @if (c.email) {
+                <small>{{ c.email }}</small>
+              }
+            </span>
+          </a>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="documento">
+        <th mat-header-cell *matHeaderCellDef>CPF / CNPJ</th>
+        <td mat-cell *matCellDef="let c">{{ documento(c) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="chip" [class.chip--pj]="c.tipo === 'PJ'">{{ c.tipo === 'PF' ? 'Pessoa física' : 'Pessoa jurídica' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="contato">
+        <th mat-header-cell *matHeaderCellDef>Telefone</th>
+        <td mat-cell *matCellDef="let c">{{ telefone(c) || '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="cidade">
+        <th mat-header-cell *matHeaderCellDef>Cidade</th>
+        <td mat-cell *matCellDef="let c">{{ c.cidade ? c.cidade + (c.uf ? ' / ' + c.uf : '') : '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Situação</th>
+        <td mat-cell *matCellDef="let c">
+          <span class="chip" [class.chip--ok]="c.ativo" [class.chip--off]="!c.ativo">{{ c.ativo ? 'Ativo' : 'Inativo' }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef class="col-actions"><span class="sr-only">Ações</span></th>
+        <td mat-cell *matCellDef="let c" class="col-actions">
+          <a mat-icon-button [routerLink]="['/clientes', c.id, 'editar']" matTooltip="Editar" aria-label="Editar cliente">
+            <mat-icon>edit</mat-icon>
+          </a>
+          @if (auth.isAdmin()) {
+            <button
+              mat-icon-button
+              type="button"
+              [matTooltip]="c.ativo ? 'Inativar' : 'Reativar'"
+              [attr.aria-label]="c.ativo ? 'Inativar cliente' : 'Reativar cliente'"
+              (click)="alternarStatus(c)"
+            >
+              <mat-icon>{{ c.ativo ? 'person_off' : 'person_add' }}</mat-icon>
+            </button>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="empty" [attr.colspan]="columns.length">
+          @if (!loading()) {
+            <mat-icon aria-hidden="true">person_search</mat-icon>
+            <strong>Nenhum cliente encontrado</strong>
+            <span>Ajuste os filtros ou cadastre um novo cliente.</span>
+          }
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <mat-paginator
+    [length]="total()"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="[10, 25, 50]"
+    (page)="mudarPagina($event)"
+    aria-label="Paginação de clientes"
+  />
+</section>

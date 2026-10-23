@@ -5,14 +5,15 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { Breadcrumb } from '../breadcrumb/breadcrumb';
 import { Footer } from '../footer/footer';
 import { Header } from '../header/header';
 import { Sidebar } from '../sidebar/sidebar';
 
-/** Estrutura da area logada: cabecalho no topo, menu lateral, conteudo rolavel e rodape fixo embaixo. */
+/** Estrutura da area logada: menu lateral escuro, barra superior, conteudo rolavel com breadcrumb e rodape. */
 @Component({
   selector: 'app-shell',
-  imports: [MatSidenavModule, RouterOutlet, Header, Sidebar, Footer],
+  imports: [MatSidenavModule, RouterOutlet, Header, Sidebar, Footer, Breadcrumb],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })

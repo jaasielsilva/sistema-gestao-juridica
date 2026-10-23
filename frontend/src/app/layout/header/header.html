@@ -1,9 +1,8 @@
-<mat-toolbar class="header">
-  <button mat-icon-button type="button" aria-label="Abrir ou fechar o menu" (click)="menuToggle.emit()">
+<header class="header">
+  <button mat-icon-button type="button" class="header__menu" aria-label="Abrir ou fechar o menu" (click)="menuToggle.emit()">
     <mat-icon>menu</mat-icon>
   </button>
 
-  <span class="header__title">{{ appName }}</span>
   <span class="header__spacer"></span>
 
   <button
@@ -16,21 +15,7 @@
     <mat-icon>{{ theme.mode() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
 
-  <button mat-icon-button type="button" aria-label="Menu do usuário" [matMenuTriggerFor]="userMenu">
-    <mat-icon>account_circle</mat-icon>
+  <button mat-icon-button type="button" matTooltip="Notificações" aria-label="Notificações">
+    <mat-icon>notifications</mat-icon>
   </button>
-
-  <mat-menu #userMenu="matMenu" xPosition="before">
-    @if (auth.user(); as user) {
-      <div class="header__user" role="presentation">
-        <strong>{{ user.nome }}</strong>
-        <span>{{ user.email }}</span>
-      </div>
-      <mat-divider />
-    }
-    <button mat-menu-item type="button" (click)="auth.logout()">
-      <mat-icon>logout</mat-icon>
-      <span>Sair</span>
-    </button>
-  </mat-menu>
-</mat-toolbar>
+</header>

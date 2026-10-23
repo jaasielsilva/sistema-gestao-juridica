@@ -1,22 +1,55 @@
-// Coluna de altura total da janela: cabecalho + corpo (rola por dentro) + rodape sempre visivel.
+// Identidade visual da tela de login aplicada a area logada.
+// Menu lateral escuro de altura total; ao lado, barra superior + conteudo rolavel + rodape.
+:host {
+  display: block;
+}
+
 .shell {
-  display: flex;
-  flex-direction: column;
+  --brand-accent: #008f78;
+  --brand-accent-bright: #54e0c2;
+  --brand-dark: #062e2b;
+  --brand-dark-2: #031a1b;
+  --mat-sys-primary: var(--brand-accent);
+  --mat-sys-on-primary: #fff;
+  --mat-sys-secondary-container: color-mix(in srgb, var(--brand-accent) 14%, transparent);
+  --mat-sys-on-secondary-container: var(--brand-accent);
+  --mat-button-filled-container-color: var(--brand-accent);
+  --mat-button-filled-label-text-color: #fff;
+
   height: 100vh;
   height: 100dvh;
 }
 
-.shell__body {
-  flex: 1 1 auto;
-  min-height: 0; // permite o corpo encolher e rolar em vez de empurrar o rodape
-}
-
 .shell__sidenav {
-  width: 260px;
+  width: 224px;
+  border-right: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, var(--brand-dark) 0%, var(--brand-dark-2) 100%);
 }
 
+// Barra superior e rodape ficam sempre visiveis; so a area do conteudo rola.
+.shell__main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shell__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// A altura do conteudo e a da janela: telas de lista ocupam o espaco todo (tabela rola por dentro, paginacao
+// sempre visivel). As demais telas mantem o tamanho natural e rolam normalmente.
 .shell__content {
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  max-width: 1840px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 3vw, 40px) 32px;
   box-sizing: border-box;
 }
 

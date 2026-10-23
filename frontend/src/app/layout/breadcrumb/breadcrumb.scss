@@ -1,0 +1,35 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 20px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 13px;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    color: var(--brand-accent);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+  }
+}
+
+.breadcrumb__sep {
+  color: var(--mat-sys-outline);
+}
+
+.breadcrumb__current {
+  color: var(--mat-sys-on-surface);
+  font-weight: 500;
+}

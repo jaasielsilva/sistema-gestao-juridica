@@ -157,6 +157,7 @@ Scripts em `database/scripts/` (ver `database/README.md`):
 | 007 | `evento_auditoria` |
 | 008 | `nota` (**exemplo** de entidade com tenant) |
 | 009 | Provisiona sequência de tenants, separa usuários legados e revoga suas sessões |
+| 010 | `cliente` (pessoa física/jurídica, CPF/CNPJ único por tenant, inativação em vez de exclusão) |
 
 A migrações `002`–`008` foram aplicadas com sucesso em revisão anterior sobre um banco com dados. A migration `009` inclui alterações de dados e revogação de sessões; faça backup e valide-a em homologação antes de aplicar em produção.
 
@@ -178,6 +179,8 @@ A migrações `002`–`008` foram aplicadas com sucesso em revisão anterior sob
 | `POST /auth/logout-all`, `/change-password` | autenticado | Sessões e senha |
 | `POST /auth/mfa/setup`, `/enable`, `/disable` | autenticado | MFA |
 | `GET/POST /notas`, `GET/DELETE /notas/{id}` | autenticado | **Exemplo** com tenant |
+| `GET /clientes` (`busca`, `tipo`, `ativo`, `page`, `size`), `GET /clientes/{id}`, `POST /clientes`, `PUT /clientes/{id}` | autenticado | Cadastro de clientes (isolado por tenant) |
+| `POST /clientes/{id}/inativar`, `/reativar` | `ADMIN` | Altera a situação do cliente |
 | `GET /admin/auditoria` | `ADMIN` | Trilha de auditoria (paginada) |
 | `GET /actuator/health` | público | Saúde |
 

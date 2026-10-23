@@ -1,0 +1,145 @@
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>{{ id() === null ? 'person_add' : 'edit' }}</mat-icon></span>
+  <div class="page-header__text">
+    <h1>{{ id() === null ? 'Novo cliente' : 'Editar cliente' }}</h1>
+    <p>{{ id() === null ? 'Preencha os dados do cliente.' : cliente()?.nome }}</p>
+  </div>
+</header>
+
+@if (loading()) {
+  <div class="loading"><mat-spinner diameter="36" /></div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    @if (error(); as message) {
+      <p class="form-error" role="alert">{{ message }}</p>
+    }
+
+    <section class="panel">
+      <h2>Dados principais</h2>
+
+      <mat-button-toggle-group formControlName="tipo" (change)="mudarTipo()" aria-label="Tipo de pessoa" class="tipo">
+        <mat-button-toggle value="PF"><mat-icon>person</mat-icon> Pessoa física</mat-button-toggle>
+        <mat-button-toggle value="PJ"><mat-icon>business</mat-icon> Pessoa jurídica</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <div class="grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>{{ isPf ? 'Nome completo' : 'Razão social' }}</mat-label>
+          <input matInput formControlName="nome" maxlength="200" autocomplete="off" />
+          @if (form.controls.nome.hasError('required')) {
+            <mat-error>Informe o {{ isPf ? 'nome' : 'nome da empresa' }}.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ isPf ? 'CPF' : 'CNPJ' }}</mat-label>
+          <input
+            matInput
+            formControlName="documento"
+            inputmode="numeric"
+            autocomplete="off"
+            [placeholder]="isPf ? '000.000.000-00' : '00.000.000/0000-00'"
+            (input)="mascararDocumento()"
+          />
+          @if (form.controls.documento.hasError('required')) {
+            <mat-error>Informe o {{ isPf ? 'CPF' : 'CNPJ' }}.</mat-error>
+          } @else if (form.controls.documento.hasError('documento')) {
+            <mat-error>{{ isPf ? 'CPF' : 'CNPJ' }} inválido.</mat-error>
+          } @else if (form.controls.documento.hasError('duplicado')) {
+            <mat-error>Já existe um cliente com este {{ isPf ? 'CPF' : 'CNPJ' }}.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>E-mail</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="off" />
+          @if (form.controls.email.hasError('email')) {
+            <mat-error>E-mail inválido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Telefone</mat-label>
+          <input
+            matInput
+            formControlName="telefone"
+            inputmode="tel"
+            autocomplete="off"
+            placeholder="(00) 00000-0000"
+            (input)="mascararTelefone()"
+          />
+          @if (form.controls.telefone.hasError('telefone')) {
+            <mat-error>Telefone inválido.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Endereço</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>CEP</mat-label>
+          <input matInput formControlName="cep" inputmode="numeric" autocomplete="off" placeholder="00000-000" (input)="mascararCep()" />
+          @if (form.controls.cep.hasError('cep')) {
+            <mat-error>CEP inválido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Logradouro</mat-label>
+          <input matInput formControlName="logradouro" maxlength="200" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Número</mat-label>
+          <input matInput formControlName="numero" maxlength="20" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Complemento</mat-label>
+          <input matInput formControlName="complemento" maxlength="100" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Bairro</mat-label>
+          <input matInput formControlName="bairro" maxlength="100" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cidade</mat-label>
+          <input matInput formControlName="cidade" maxlength="100" autocomplete="off" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>UF</mat-label>
+          <mat-select formControlName="uf">
+            <mat-option value="">—</mat-option>
+            @for (uf of ufs; track uf) {
+              <mat-option [value]="uf">{{ uf }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Observações</h2>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Observações internas</mat-label>
+        <textarea matInput formControlName="observacoes" rows="4" maxlength="2000"></textarea>
+      </mat-form-field>
+    </section>
+
+    <div class="actions">
+      <a mat-stroked-button routerLink="/clientes">Cancelar</a>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <ng-container><mat-icon>save</mat-icon> Salvar</ng-container>
+        }
+      </button>
+    </div>
+  </form>
+}
