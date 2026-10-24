@@ -134,11 +134,8 @@
     <div class="actions">
       <a mat-stroked-button routerLink="/clientes">Cancelar</a>
       <button mat-flat-button type="submit" [disabled]="saving()">
-        @if (saving()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          <mat-icon>save</mat-icon><span>Salvar</span>
-        }
+        <mat-icon>save</mat-icon>
+        @if (saving()) { <mat-spinner diameter="18" /> } @else { Salvar }
       </button>
     </div>
   </form>

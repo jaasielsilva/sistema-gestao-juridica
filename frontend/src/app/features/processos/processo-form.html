@@ -41,14 +41,36 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Cliente</mat-label>
-          <mat-select formControlName="clienteId" required>
-            @for (cli of clientes(); track cli.id) {
-              <mat-option [value]="cli.id">
-                {{ cli.nome }} ({{ formatDocCliente(cli) }})
+          <input
+            matInput
+            [formControl]="clienteBusca"
+            [matAutocomplete]="autoCliente"
+            placeholder="Digite o nome ou CPF/CNPJ..."
+            autocomplete="off"
+          />
+          @if (buscandoClientes()) {
+            <mat-spinner matSuffix diameter="18" />
+          } @else if (clienteSelecionado()) {
+            <button matSuffix mat-icon-button type="button" aria-label="Limpar cliente" (click)="limparCliente()">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+          <mat-autocomplete
+            #autoCliente="matAutocomplete"
+            [displayWith]="labelCliente"
+            (optionSelected)="selecionarCliente($event.option.value)"
+          >
+            @for (cli of clientesSugeridos(); track cli.id) {
+              <mat-option [value]="cli">
+                <span class="autocomplete-cliente__nome">{{ cli.nome }}</span>
+                <span class="autocomplete-cliente__doc">{{ labelCliente(cli).split('—')[1]?.trim() }}</span>
               </mat-option>
             }
-          </mat-select>
-          @if (form.controls.clienteId.hasError('required')) {
+            @if (!buscandoClientes() && clientesSugeridos().length === 0 && (clienteBusca.value?.trim()?.length ?? 0) > 1) {
+              <mat-option disabled>Nenhum cliente encontrado</mat-option>
+            }
+          </mat-autocomplete>
+          @if (form.controls.clienteId.hasError('required') && form.controls.clienteId.touched) {
             <mat-error>Selecione o cliente vinculado.</mat-error>
           }
         </mat-form-field>
@@ -144,11 +166,8 @@
     <div class="actions">
       <a mat-stroked-button routerLink="/processos">Cancelar</a>
       <button mat-flat-button type="submit" [disabled]="saving()">
-        @if (saving()) {
-          <mat-spinner diameter="20" />
-        } @else {
-          <mat-icon>save</mat-icon><span>Salvar</span>
-        }
+        <mat-icon>save</mat-icon>
+        @if (saving()) { <mat-spinner diameter="18" /> } @else { Salvar }
       </button>
     </div>
   </form>

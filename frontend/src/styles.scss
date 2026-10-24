@@ -182,3 +182,16 @@ body {
 .auth-hint {
   color: var(--auth-muted);
 }
+
+// ---- Toasts globais (NotificationService) ----
+.snack-success {
+  --mdc-snackbar-container-color: #1a6b4a;
+  --mdc-snackbar-supporting-text-color: #fff;
+  --mat-snack-bar-button-color: #a7f3d0;
+}
+
+.snack-error {
+  --mdc-snackbar-container-color: #b91c1c;
+  --mdc-snackbar-supporting-text-color: #fff;
+  --mat-snack-bar-button-color: #fca5a5;
+}

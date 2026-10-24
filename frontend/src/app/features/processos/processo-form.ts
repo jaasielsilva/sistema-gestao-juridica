@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,8 +9,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { apiErrorMessage } from '../../core/auth/api-error';
 import { AuthService } from '../../core/auth/auth.service';
+import { NotificationService } from '../../core/notification/notification.service';
 import { cnjValidator, formatCnj, formatDocumento } from '../../shared/br-format';
 import { Cliente } from '../clientes/cliente.models';
 import { ClienteService } from '../clientes/cliente.service';
@@ -37,17 +40,20 @@ import { ProcessoService } from './processo.service';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatAutocompleteModule,
   ],
   templateUrl: './processo-form.html',
   styleUrl: './processo-form.scss',
 })
-export class ProcessoForm implements OnInit {
+export class ProcessoForm implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProcessoService);
   private readonly clienteService = inject(ClienteService);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly notify = inject(NotificationService);
+  private readonly destroy$ = new Subject<void>();
 
   protected readonly tipos = TIPOS_PROCESSO;
   protected readonly areas = AREAS_JURIDICAS;
@@ -59,7 +65,16 @@ export class ProcessoForm implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly processo = signal<Processo | null>(null);
-  protected readonly clientes = signal<Cliente[]>([]);
+
+  // --- Autocomplete de cliente ---
+  /** Sugestoes retornadas pela API conforme o usuario digita. */
+  protected readonly clientesSugeridos = signal<Cliente[]>([]);
+  /** Indica que a busca de sugestoes esta em andamento. */
+  protected readonly buscandoClientes = signal(false);
+  /** Campo de texto visivel para o autocomplete (nao vai para o formulario). */
+  protected readonly clienteBusca = new FormControl('');
+  /** Cliente efetivamente selecionado (id que vai para o form). */
+  protected readonly clienteSelecionado = signal<Cliente | null>(null);
 
   protected readonly form = this.fb.group({
     numero: ['', [Validators.required, cnjValidator]],
@@ -78,7 +93,7 @@ export class ProcessoForm implements OnInit {
   });
 
   ngOnInit(): void {
-    this.carregarClientes();
+    this.iniciarAutocompletCliente();
 
     const loggedUser = this.auth.user();
     if (loggedUser) {
@@ -110,6 +125,14 @@ export class ProcessoForm implements OnInit {
           proximoPrazoDescricao: p.proximoPrazoDescricao ?? '',
           observacoes: p.observacoes ?? '',
         });
+        // Ao editar, carrega o cliente selecionado para exibir no campo
+        this.clienteService.buscar(p.clienteId).subscribe({
+          next: (c) => {
+            this.clienteSelecionado.set(c);
+            this.clienteBusca.setValue(this.labelCliente(c), { emitEvent: false });
+          },
+          error: () => undefined,
+        });
         this.loading.set(false);
       },
       error: (err: unknown) => {
@@ -117,6 +140,32 @@ export class ProcessoForm implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /** Monta o texto de exibicao do cliente no campo de autocomplete. */
+  protected labelCliente(cli: Cliente | null): string {
+    if (!cli) return '';
+    return `${cli.nome} — ${formatDocumento(cli.tipo, cli.documento)}`;
+  }
+
+  /** Chamado pelo mat-autocomplete quando o usuario seleciona uma opcao. */
+  protected selecionarCliente(cli: Cliente): void {
+    this.clienteSelecionado.set(cli);
+    this.form.controls.clienteId.setValue(cli.id);
+    this.form.controls.clienteId.markAsTouched();
+  }
+
+  /** Chamado quando o usuario limpa o campo manualmente. */
+  protected limparCliente(): void {
+    this.clienteSelecionado.set(null);
+    this.form.controls.clienteId.setValue(null);
+    this.clienteBusca.setValue('');
+    this.clientesSugeridos.set([]);
   }
 
   protected mascararNumero(): void {
@@ -128,10 +177,6 @@ export class ProcessoForm implements OnInit {
 
   protected formatNumero(v: string): string {
     return formatCnj(v);
-  }
-
-  protected formatDocCliente(cli: Cliente): string {
-    return formatDocumento(cli.tipo, cli.documento);
   }
 
   protected salvar(): void {
@@ -163,13 +208,19 @@ export class ProcessoForm implements OnInit {
     this.error.set(null);
 
     const id = this.id();
-    const req = id === null ? this.service.criar(body) : this.service.atualizar(id, body);
+    const isNovo = id === null;
+    const req = isNovo ? this.service.criar(body) : this.service.atualizar(id, body);
 
     req.subscribe({
-      next: () => void this.router.navigate(['/processos']),
+      next: () => {
+        this.notify.success(isNovo ? 'Processo cadastrado com sucesso!' : 'Processo atualizado com sucesso!');
+        void this.router.navigate(['/processos']);
+      },
       error: (err: unknown) => {
         this.saving.set(false);
-        this.error.set(apiErrorMessage(err));
+        const msg = apiErrorMessage(err);
+        this.error.set(msg);
+        this.notify.error(msg);
         if (err instanceof HttpErrorResponse && err.status === 409) {
           this.form.controls.numero.setErrors({ duplicado: true });
         }
@@ -177,12 +228,40 @@ export class ProcessoForm implements OnInit {
     });
   }
 
-  private carregarClientes(): void {
-    this.clienteService
-      .listar({ busca: '', tipo: '', status: 'ativos', cidade: '', uf: '', page: 0, size: 200 })
-      .subscribe({
-        next: (page) => this.clientes.set(page.content),
-        error: () => this.clientes.set([]),
-      });
+  /** Escuta o campo de busca e dispara a consulta na API com debounce de 300ms. */
+  private iniciarAutocompletCliente(): void {
+    this.clienteBusca.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$),
+    ).subscribe((termo) => {
+      // Se o usuario apagou o campo, limpa a selecao
+      if (!termo || termo.trim().length === 0) {
+        this.clientesSugeridos.set([]);
+        if (this.clienteSelecionado()) {
+          this.clienteSelecionado.set(null);
+          this.form.controls.clienteId.setValue(null);
+        }
+        return;
+      }
+
+      // Se o texto ainda e o label do cliente selecionado, nao rebusca
+      const selecionado = this.clienteSelecionado();
+      if (selecionado && termo === this.labelCliente(selecionado)) {
+        return;
+      }
+
+      // Busca na API: apenas ativos, maximo 10 sugestoes
+      this.buscandoClientes.set(true);
+      this.clienteService
+        .listar({ busca: termo.trim(), tipo: '', status: 'ativos', cidade: '', uf: '', page: 0, size: 10 })
+        .subscribe({
+          next: (page) => {
+            this.clientesSugeridos.set(page.content);
+            this.buscandoClientes.set(false);
+          },
+          error: () => this.buscandoClientes.set(false),
+        });
+    });
   }
 }

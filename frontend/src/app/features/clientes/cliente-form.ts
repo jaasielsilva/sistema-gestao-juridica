@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { apiErrorMessage } from '../../core/auth/api-error';
+import { NotificationService } from '../../core/notification/notification.service';
 import {
   cepValidator,
   documentoValidator,
@@ -43,6 +44,7 @@ export class ClienteForm implements OnInit {
   private readonly service = inject(ClienteService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly notify = inject(NotificationService);
 
   protected readonly ufs = UFS;
   protected readonly id = signal<number | null>(null);
@@ -154,11 +156,17 @@ export class ClienteForm implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const id = this.id();
-    (id === null ? this.service.criar(body) : this.service.atualizar(id, body)).subscribe({
-      next: () => void this.router.navigate(['/clientes']),
+    const isNovo = id === null;
+    (isNovo ? this.service.criar(body) : this.service.atualizar(id, body)).subscribe({
+      next: () => {
+        this.notify.success(isNovo ? 'Cliente cadastrado com sucesso!' : 'Cliente atualizado com sucesso!');
+        void this.router.navigate(['/clientes']);
+      },
       error: (err: unknown) => {
         this.saving.set(false);
-        this.error.set(apiErrorMessage(err));
+        const msg = apiErrorMessage(err);
+        this.error.set(msg);
+        this.notify.error(msg);
         if (err instanceof HttpErrorResponse && err.status === 409) {
           this.form.controls.documento.setErrors({ duplicado: true });
         }

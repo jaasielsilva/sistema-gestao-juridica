@@ -29,6 +29,7 @@
                 class="nav-link nav-link--child"
                 [routerLink]="child.route"
                 routerLinkActive="is-active"
+                [routerLinkActiveOptions]="{ exact: true }"
                 (click)="navigated.emit()"
               >
                 <mat-icon aria-hidden="true">{{ child.icon }}</mat-icon>
