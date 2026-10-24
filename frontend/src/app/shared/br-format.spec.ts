@@ -1,9 +1,11 @@
 import {
   formatCep,
+  formatCnj,
   formatCnpj,
   formatCpf,
   formatDocumento,
   formatTelefone,
+  isValidCnj,
   isValidCnpj,
   isValidCpf,
   onlyDigits,
@@ -43,5 +45,13 @@ describe('br-format', () => {
     expect(isValidCnpj('11.222.333/0001-80')).toBe(false);
     expect(isValidCnpj('00.000.000/0000-00')).toBe(false);
     expect(isValidCnpj('529.982.247-25')).toBe(false);
+  });
+
+  it('formata e valida CNJ', () => {
+    expect(formatCnj('00012347120248260100')).toBe('0001234-71.2024.8.26.0100');
+    expect(isValidCnj('0001234-71.2024.8.26.0100')).toBe(true);
+    expect(isValidCnj('0000009-15.2015.8.26.0558')).toBe(true);
+    expect(isValidCnj('0000009-16.2015.8.26.0558')).toBe(false);
+    expect(isValidCnj('12345')).toBe(false);
   });
 });

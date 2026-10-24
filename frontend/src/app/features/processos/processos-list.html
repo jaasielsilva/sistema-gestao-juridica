@@ -1,0 +1,300 @@
+<nav class="breadcrumb" aria-label="Navegação estrutural">
+  <a routerLink="/inicio" class="breadcrumb__link">
+    <mat-icon class="breadcrumb__icon">home</mat-icon>
+    <span>Início</span>
+  </a>
+  <span class="breadcrumb__separator">›</span>
+  <span class="breadcrumb__current">Processos</span>
+</nav>
+
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>folder</mat-icon></span>
+  <div class="page-header__text">
+    <h1>Processos</h1>
+    <p>Gerencie, acompanhe e tenha visão completa de todos os processos do seu escritório.</p>
+  </div>
+  <a mat-flat-button routerLink="/processos/novo" class="page-header__action">
+    <mat-icon>add</mat-icon>
+    Novo Processo
+  </a>
+  <button mat-stroked-button type="button" class="page-header__action" (click)="exportarCsv()" [disabled]="!processos().length">
+    <mat-icon>file_download</mat-icon>
+    Exportar
+  </button>
+</header>
+
+<ul class="stats" aria-label="Resumo dos processos">
+  @for (c of cartoes(); track c.rotulo) {
+    <li class="stat" [class.stat--highlight]="c.destaque">
+      <span class="stat__icon stat__icon--{{ c.tipo }}" aria-hidden="true">
+        <mat-icon>{{ c.icone }}</mat-icon>
+      </span>
+      <span class="stat__text">
+        <small class="stat__label">{{ c.rotulo }}</small>
+        <strong class="stat__value">{{ c.valor }}</strong>
+        <span class="stat__sub" [class.stat__sub--trend]="c.destaque">
+          @if (c.destaque) {
+            <mat-icon class="stat__sub-icon">arrow_upward</mat-icon>
+          }
+          {{ c.subtexto }}
+        </span>
+      </span>
+    </li>
+  }
+</ul>
+
+<section class="panel">
+  <div class="filters-bar">
+    <div class="filters-bar__search">
+      <label class="search-box">
+        <mat-icon aria-hidden="true">search</mat-icon>
+        <input
+          type="search"
+          [formControl]="busca"
+          placeholder="Buscar por número, cliente, parte, advogado..."
+          aria-label="Buscar processos"
+        />
+      </label>
+    </div>
+
+    <div class="filters-bar__selects">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [formControl]="clienteId" placeholder="Todos os clientes">
+          <mat-option [value]="null">Todos os clientes</mat-option>
+          @for (cli of clientes(); track cli.id) {
+            <mat-option [value]="cli.id">{{ cli.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [formControl]="tipo" placeholder="Todos os tipos">
+          <mat-option value="">Todos os tipos</mat-option>
+          @for (t of tipos; track t.value) {
+            <mat-option [value]="t.value">{{ t.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [formControl]="areaJuridica" placeholder="Todas as áreas">
+          <mat-option value="">Todas as áreas</mat-option>
+          @for (a of areas; track a) {
+            <mat-option [value]="a">{{ a }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [formControl]="tribunal" placeholder="Todos os tribunais">
+          <mat-option value="">Todos os tribunais</mat-option>
+          @for (tr of tribunais; track tr) {
+            <mat-option [value]="tr">{{ tr }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [formControl]="situacao" placeholder="Todas as situações">
+          <mat-option value="">Todas as situações</mat-option>
+          @for (s of situacoes; track s.value) {
+            <mat-option [value]="s.value">{{ s.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="filter-toggle"
+        (click)="alternarFiltros()"
+        [matTooltip]="filtrosAtivos() > 0 ? filtrosAtivos() + ' filtros ativos' : 'Filtros'"
+      >
+        <mat-icon>tune</mat-icon>
+        Filtros
+        @if (filtrosAtivos() > 0) {
+          <span class="filter-count">{{ filtrosAtivos() }}</span>
+        }
+      </button>
+
+      @if (filtrosAtivos() > 0) {
+        <button mat-button type="button" class="filter-clear" (click)="limparFiltros()">
+          Limpar
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (error(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="processos()" aria-label="Tabela de processos judiciais">
+      <!-- Checkbox Column -->
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef class="col-checkbox">
+          <mat-checkbox
+            (change)="toggleAllRows()"
+            [checked]="isAllSelected()"
+            [indeterminate]="isPartiallySelected()"
+            aria-label="Selecionar todos os processos"
+          />
+        </th>
+        <td mat-cell *matCellDef="let p" class="col-checkbox">
+          <mat-checkbox
+            (click)="$event.stopPropagation()"
+            (change)="selection.toggle(p)"
+            [checked]="selection.isSelected(p)"
+            [attr.aria-label]="'Selecionar processo ' + formatNumero(p.numero)"
+          />
+        </td>
+      </ng-container>
+
+      <!-- Número do Processo -->
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Número do Processo</th>
+        <td mat-cell *matCellDef="let p" class="col-numero">
+          <button type="button" class="link-details" (click)="visualizar(p)">
+            {{ formatNumero(p.numero) }}
+          </button>
+          <small class="col-sub">CNJ • {{ p.vara || p.tribunal }}</small>
+        </td>
+      </ng-container>
+
+      <!-- Cliente -->
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let p">
+          <strong class="col-title">{{ p.clienteNome }}</strong>
+          <small class="col-sub">{{ formatDoc(p.clienteTipo, p.clienteDocumento) }}</small>
+        </td>
+      </ng-container>
+
+      <!-- Tipo -->
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="chip-tipo">{{ tipoLabel(p.tipo) }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Área Jurídica -->
+      <ng-container matColumnDef="areaJuridica">
+        <th mat-header-cell *matHeaderCellDef>Área Jurídica</th>
+        <td mat-cell *matCellDef="let p" class="col-area">{{ p.areaJuridica }}</td>
+      </ng-container>
+
+      <!-- Tribunal / Comarca -->
+      <ng-container matColumnDef="tribunal">
+        <th mat-header-cell *matHeaderCellDef>Tribunal / Comarca</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="col-title">{{ p.tribunal }}</span>
+          <small class="col-sub">{{ p.vara || p.comarca || '—' }}</small>
+        </td>
+      </ng-container>
+
+      <!-- Advogado Responsável -->
+      <ng-container matColumnDef="advogado">
+        <th mat-header-cell *matHeaderCellDef>Advogado Responsável</th>
+        <td mat-cell *matCellDef="let p">
+          <div class="lawyer">
+            <span class="lawyer__avatar" aria-hidden="true">{{ iniciais(p.advogadoNome) }}</span>
+            <div class="lawyer__info">
+              <span class="col-title">{{ p.advogadoNome }}</span>
+              <small class="col-sub">{{ p.advogadoOab || '—' }}</small>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Situação -->
+      <ng-container matColumnDef="situacao">
+        <th mat-header-cell *matHeaderCellDef>Situação</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="badge" [class]="situacaoInfo(p.situacao).cssClass">
+            {{ situacaoInfo(p.situacao).label }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Próximo Prazo -->
+      <ng-container matColumnDef="proximoPrazo">
+        <th mat-header-cell *matHeaderCellDef>Próximo Prazo</th>
+        <td mat-cell *matCellDef="let p">
+          <div class="deadline">
+            <span class="deadline__date">
+              <mat-icon class="deadline__icon" aria-hidden="true">event</mat-icon>
+              {{ formatData(p.proximoPrazo) }}
+            </span>
+            <small class="col-sub">{{ p.proximoPrazoDescricao || (p.situacao === 'ENCERRADO' ? 'Processo encerrado' : '—') }}</small>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Ações -->
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef class="col-actions">Ações</th>
+        <td mat-cell *matCellDef="let p" class="col-actions">
+          <button mat-button type="button" class="btn-view" (click)="visualizar(p)">
+            <mat-icon>visibility</mat-icon>
+            Ver detalhes
+          </button>
+
+          <button
+            mat-icon-button
+            type="button"
+            [matMenuTriggerFor]="processoMenu"
+            aria-label="Mais ações do processo"
+          >
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #processoMenu="matMenu">
+            <a mat-menu-item [routerLink]="['/processos', p.id, 'editar']">
+              <mat-icon>edit</mat-icon>
+              <span>Editar processo</span>
+            </a>
+            <button mat-menu-item type="button" (click)="copiarNumero(p)">
+              <mat-icon>content_copy</mat-icon>
+              <span>Copiar número CNJ</span>
+            </button>
+          </mat-menu>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="empty" [attr.colspan]="columns.length">
+          @if (!loading()) {
+            <mat-icon aria-hidden="true">search_off</mat-icon>
+            <strong>Nenhum processo encontrado</strong>
+            <span>Ajuste os filtros de busca ou cadastre um novo processo.</span>
+          }
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <span class="table-footer__count">
+      Mostrando {{ total() === 0 ? 0 : pageIndex() * pageSize() + 1 }} -
+      {{ total() === 0 ? 0 : (pageIndex() + 1) * pageSize() > total() ? total() : (pageIndex() + 1) * pageSize() }} de
+      {{ total() }} processos
+    </span>
+
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[10, 25, 50]"
+      (page)="mudarPagina($event)"
+      aria-label="Paginação de processos"
+      class="paginator-clean"
+    />
+  </div>
+</section>

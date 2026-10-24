@@ -14,11 +14,18 @@ export interface NavItem {
   bottom?: boolean;
 }
 
-/** Menu lateral. Cada produto novo adiciona seus itens aqui, acima de "Minha conta" (fixa no fim). */
+/** Menu lateral. Conforme o padrão do sistema e protótipo visual. */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Início', icon: 'home', route: '/inicio' },
   { label: 'Clientes', icon: 'groups', route: '/clientes' },
-  // Exemplo: { label: 'Usuários', icon: 'group', route: '/usuarios', roles: ['ADMIN'] },
+  {
+    label: 'Processos',
+    icon: 'folder',
+    children: [
+      { label: 'Listar Processos', icon: 'format_list_bulleted', route: '/processos' },
+      { label: 'Novo Processo', icon: 'add_box', route: '/processos/novo' },
+    ],
+  },
   {
     label: 'Minha conta',
     icon: 'manage_accounts',

@@ -1,6 +1,6 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
-/** Utilitarios de CPF/CNPJ/CEP/telefone: mascara de exibicao e validacao dos digitos verificadores. */
+/** Utilitarios de CPF/CNPJ/CEP/telefone/CNJ: mascara de exibicao e validacao dos digitos verificadores. */
 
 export const onlyDigits = (v: string | null | undefined): string => (v ?? '').replace(/\D/g, '');
 
@@ -38,6 +38,17 @@ export function formatTelefone(v: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
+/** Formata número CNJ no padrão NNNNNNN-DD.AAAA.J.TR.OOOO (20 dígitos). */
+export function formatCnj(v: string): string {
+  const d = onlyDigits(v).slice(0, 20);
+  return d
+    .replace(/^(\d{7})(\d)/, '$1-$2')
+    .replace(/^(\d{7}-\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{7}-\d{2}\.\d{4})(\d)/, '$1.$2')
+    .replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1})(\d)/, '$1.$2')
+    .replace(/^(\d{7}-\d{2}\.\d{4}\.\d{1}\.\d{2})(\d)/, '$1.$2');
+}
+
 function checkDigit(d: string, weights: number[]): number {
   const sum = weights.reduce((acc, w, i) => acc + Number(d[i]) * w, 0);
   const r = (sum * 10) % 11;
@@ -60,6 +71,18 @@ export function isValidCnpj(value: string): boolean {
   return checkDigit(d, w1) === Number(d[12]) && checkDigit(d, w2) === Number(d[13]);
 }
 
+/** Validação de numeração única CNJ (Resolução 65/2008, ISO 7064 MOD 97-10). */
+export function isValidCnj(value: string): boolean {
+  const d = onlyDigits(value);
+  if (d.length !== 20) return false;
+  try {
+    const toVerify = d.slice(0, 7) + d.slice(9) + d.slice(7, 9);
+    return BigInt(toVerify) % 97n === 1n;
+  } catch {
+    return false;
+  }
+}
+
 /** Valida o campo conforme o tipo de pessoa devolvido por `tipo()` (campo vazio fica por conta do `required`). */
 export function documentoValidator(tipo: () => 'PF' | 'PJ'): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -69,6 +92,12 @@ export function documentoValidator(tipo: () => 'PF' | 'PJ'): ValidatorFn {
     return ok ? null : { documento: true };
   };
 }
+
+export const cnjValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const value = control.value as string;
+  if (!value) return null;
+  return isValidCnj(value) ? null : { cnj: true };
+};
 
 export const telefoneValidator: ValidatorFn = (control) => {
   const len = onlyDigits(control.value as string).length;

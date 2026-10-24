@@ -4,10 +4,16 @@
     <h1>Olá, {{ primeiroNome() }} <span aria-hidden="true">👋</span></h1>
     <p>Acompanhe os dados do seu escritório e continue de onde parou.</p>
   </div>
-  <a mat-flat-button routerLink="/clientes/novo" class="welcome__action">
-    <mat-icon>person_add</mat-icon>
-    Novo cliente
-  </a>
+  <div class="welcome__actions">
+    <a mat-flat-button routerLink="/processos/novo" class="welcome__action welcome__action--primary">
+      <mat-icon>add</mat-icon>
+      Novo processo
+    </a>
+    <a mat-stroked-button routerLink="/clientes/novo" class="welcome__action">
+      <mat-icon>person_add</mat-icon>
+      Novo cliente
+    </a>
+  </div>
 </header>
 
 <section class="overview" aria-labelledby="overview-title">
@@ -53,19 +59,27 @@
   </div>
 
   <div class="quick-grid">
+    <a class="quick-card" routerLink="/processos">
+      <span class="quick-card__icon" aria-hidden="true"><mat-icon>folder</mat-icon></span>
+      <span class="quick-card__copy">
+        <strong>Consultar processos</strong>
+        <small>Acompanhe prazos, foros, situações e andamento dos processos.</small>
+      </span>
+      <mat-icon class="quick-card__arrow" aria-hidden="true">arrow_forward</mat-icon>
+    </a>
+    <a class="quick-card" routerLink="/processos/novo">
+      <span class="quick-card__icon" aria-hidden="true"><mat-icon>add_box</mat-icon></span>
+      <span class="quick-card__copy">
+        <strong>Novo processo</strong>
+        <small>Cadastre um processo judicial com número CNJ e cliente.</small>
+      </span>
+      <mat-icon class="quick-card__arrow" aria-hidden="true">arrow_forward</mat-icon>
+    </a>
     <a class="quick-card" routerLink="/clientes">
       <span class="quick-card__icon" aria-hidden="true"><mat-icon>groups</mat-icon></span>
       <span class="quick-card__copy">
         <strong>Consultar clientes</strong>
         <small>Pesquise, filtre e atualize os cadastros.</small>
-      </span>
-      <mat-icon class="quick-card__arrow" aria-hidden="true">arrow_forward</mat-icon>
-    </a>
-    <a class="quick-card" routerLink="/clientes/novo">
-      <span class="quick-card__icon" aria-hidden="true"><mat-icon>person_add</mat-icon></span>
-      <span class="quick-card__copy">
-        <strong>Cadastrar cliente</strong>
-        <small>Adicione uma pessoa física ou jurídica.</small>
       </span>
       <mat-icon class="quick-card__arrow" aria-hidden="true">arrow_forward</mat-icon>
     </a>

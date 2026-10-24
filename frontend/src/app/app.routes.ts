@@ -60,6 +60,21 @@ export const routes: Routes = [
         loadComponent: () => import('./features/clientes/cliente-form').then((m) => m.ClienteForm),
       },
       {
+        path: 'processos',
+        title: 'Processos',
+        loadComponent: () => import('./features/processos/processos-list').then((m) => m.ProcessosList),
+      },
+      {
+        path: 'processos/novo',
+        title: 'Novo Processo',
+        loadComponent: () => import('./features/processos/processo-form').then((m) => m.ProcessoForm),
+      },
+      {
+        path: 'processos/:id/editar',
+        title: 'Editar Processo',
+        loadComponent: () => import('./features/processos/processo-form').then((m) => m.ProcessoForm),
+      },
+      {
         path: 'seguranca',
         title: 'Segurança',
         loadComponent: () => import('./features/account/security/security').then((m) => m.Security),

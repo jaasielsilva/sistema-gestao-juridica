@@ -10,12 +10,7 @@ import { APP_CONFIG } from '../../core/config/app-config';
     <main class="auth">
       <mat-card class="auth__card" appearance="outlined">
         <div class="auth__logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1.5" fill="#3b82f6" />
-            <rect x="14" y="3" width="7" height="7" rx="1.5" fill="#3b82f6" opacity="0.6" />
-            <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#3b82f6" opacity="0.6" />
-            <rect x="14" y="14" width="7" height="7" rx="1.5" fill="#3b82f6" />
-          </svg>
+          <img src="/brand-mark.svg" alt="" width="32" height="32" />
           <h1 class="auth__title">{{ appName }}</h1>
         </div>
         <p class="auth__subtitle">{{ subtitle() }}</p>

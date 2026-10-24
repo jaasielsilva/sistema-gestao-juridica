@@ -83,6 +83,7 @@ A casca é um projeto-base para novos produtos. Inclui autenticação, multi-ten
 ### 4.3 Multi-tenancy
 - Cada usuário pertence a um tenant; o tenant vai assinado no token e isola os dados de negócio (§5, ADR 0003).
 - O módulo **`cliente/`** é o primeiro módulo de negócio real (pessoa física/jurídica, CPF/CNPJ único por tenant, validação de documento em `Documento`). Listar/consultar/criar/editar: qualquer autenticado; inativar/reativar: `ADMIN` (não há exclusão). Tem teste de integração (`ClienteIntegrationTest`) e unitário (`DocumentoTest`).
+- O módulo **`processo/`** gerencia os processos judiciais do escritório (migration `011_create_processo.sql`, validação de numeração única CNJ via `NumeroCnj`, vínculo com `Cliente` do mesmo tenant, isolamento com `TenantScopedEntity`). API `/api/v1/processos` com filtros compostos, resumo numérico por situação e testes de integração com isolamento entre tenants (`ProcessoIntegrationTest`).
 - O módulo **`nota/`** é um exemplo (apague no produto real). `USER` cria, consulta e exclui as próprias notas; `ADMIN` pode consultar e excluir notas de usuários do mesmo tenant.
 - A migration `009` separa em tenants individuais as contas legadas que compartilhavam o tenant padrão, move notas e eventos de auditoria pelo usuário e revoga as sessões existentes. A migration ainda não foi aplicada a ambientes nesta revisão.
 - O e-mail continua globalmente único para manter o login global atual. O cadastro duplicado responde de forma genérica; uma mesma pessoa não pode usar um único e-mail em mais de um tenant.
@@ -93,6 +94,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 ### 4.5 Frontend
 - Telas públicas: login (com etapa de MFA), cadastro, esqueci a senha, redefinir senha, confirmar e-mail.
 - Área logada: layout com **cabeçalho**, **breadcrumb**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, painel inicial (`/inicio`) com resumo de clientes e atalhos, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
+- **Processos** (`features/processos`): listagem completa conforme padrão e protótipo visual, 5 cartões de resumo por situação, busca global/local e filtros avançados (cliente, tipo, área, tribunal, situação), paginação no servidor, visualização detalhada em diálogo modal, cadastro (`/processos/novo`) e edição (`/processos/:id/editar`) com validação de CNJ, máscaras de exibição e exportação em CSV.
 - **Clientes** (`features/clientes`): listagem paginada no servidor, cinco cartões de resumo, busca e filtros por tipo, situação, cidade e UF; ações de visualizar, editar e, para `ADMIN`, inativar/reativar. Cadastro (`/clientes/novo`) e edição (`/clientes/:id/editar`); máscaras/formatação de CPF/CNPJ/telefone em `shared/br-format.ts`.
 - Guards de rota, interceptor (token, renovação automática em 401, `X-Requested-With`), tratamento de erros sem expor detalhes técnicos.
 

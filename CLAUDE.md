@@ -5,7 +5,7 @@ Estado completo da aplicação: `docs/ESTADO-ATUAL.md`.
 
 ## Produto
 - **Nome:** Sistema de Gestão Jurídica
-- **O que é / para quem:** gestão de escritórios de advocacia (clientes, processos, prazos, documentos, financeiro), multi-tenant; perfis e permissões propostos em `docs/product/PRD.md`. Módulo implementado até agora: **clientes**.
+- **O que é / para quem:** gestão de escritórios de advocacia (clientes, processos, prazos, documentos, financeiro), multi-tenant; perfis e permissões propostos em `docs/product/PRD.md`. Módulos implementados até agora: **clientes** e **processos**.
 
 ## Stack
 - Backend: Java 21 · Spring Boot 3.5 · Maven · SQL Server · Spring Data JPA/Hibernate · Spring Security + JWT
@@ -15,9 +15,9 @@ Estado completo da aplicação: `docs/ESTADO-ATUAL.md`.
 ## Estrutura
 ```
 backend/                 API (pacote base br.com.jaasielsilva.gestaojuridica)
-  auth/ (session, mfa, throttle, token)  user/  security/  tenant/  audit/  mail/  shared/  cliente/  nota/(EXEMPLO)
+  auth/ (session, mfa, throttle, token)  user/  security/  tenant/  audit/  mail/  shared/  cliente/  processo/  nota/(EXEMPLO)
 frontend/                SPA: core/ (auth, config, navegação, tema), layout/ (shell, header, sidebar, footer),
-                         features/ (telas: auth, account, clientes, home), shared/ (br-format)
+                         features/ (telas: auth, account, clientes, processos, home), shared/ (br-format)
 database/scripts/        scripts SQL numerados (NNN_descricao.sql) - fonte da verdade do schema
 database/seed/           cargas opcionais de dados de teste (não rodam no apply.sh)
 database/post/grants.sql permissões do usuário de runtime (roda a cada apply.sh)
@@ -41,7 +41,7 @@ cd frontend && npx ng test --watch=false && npx ng build
 4. Hibernate roda com `ddl-auto=validate`: entidade e script precisam bater (o teste de integração valida isso).
 5. Entidades JPA **nunca** saem pela API; use DTOs (`record`). Controller só recebe/responde; regra fica no Service; `@Transactional` no Service.
 6. Autorização no servidor (`SecurityConfig` + `@PreAuthorize`). Nunca confie em papel/ID/tenant vindo do cliente: a identidade vem de `@AuthenticationPrincipal AuthPrincipal`.
-7. **Multi-tenancy:** toda entidade de negócio estende `TenantScopedEntity` e todo repositório estende `TenantScopedRepository` (modelo: `cliente/`; `nota/` é só exemplo). Nunca use `EntityManager.find`/`getReferenceById` direto nelas: o Hibernate **não** filtra tenant nesses caminhos. Toda tabela de negócio tem `tenant_id NOT NULL` + FK + índice com `tenant_id` na frente. Todo módulo novo precisa de teste de isolamento entre dois tenants.
+7. **Multi-tenancy:** toda entidade de negócio estende `TenantScopedEntity` e todo repositório estende `TenantScopedRepository` (modelo: `cliente/`, `processo/`; `nota/` é só exemplo). Nunca use `EntityManager.find`/`getReferenceById` direto nelas: o Hibernate **não** filtra tenant nesses caminhos. Toda tabela de negócio tem `tenant_id NOT NULL` + FK + índice com `tenant_id` na frente. Todo módulo novo precisa de teste de isolamento entre dois tenants.
 8. Sem segredos no código, no `application.yml`, em logs ou commits. Configuração só por variável de ambiente.
 9. Erros saem como `ApiError` via `GlobalExceptionHandler`; nunca devolva stack trace, SQL ou mensagem de exceção interna.
 10. Eventos de segurança novos vão para `AuditService` (nunca registrar senha/token/segredo no detalhe).

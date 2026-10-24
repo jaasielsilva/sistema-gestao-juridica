@@ -3,6 +3,16 @@
     <mat-icon>menu</mat-icon>
   </button>
 
+  <div class="header__search">
+    <mat-icon class="header__search-icon" aria-hidden="true">search</mat-icon>
+    <input
+      type="search"
+      placeholder="Buscar por número do processo, cliente, parte, advogado..."
+      (keyup.enter)="irParaBusca($event)"
+      aria-label="Buscar processos ou clientes"
+    />
+  </div>
+
   <span class="header__spacer"></span>
 
   <button
@@ -15,7 +25,21 @@
     <mat-icon>{{ theme.mode() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
 
-  <button mat-icon-button type="button" matTooltip="Notificações" aria-label="Notificações">
-    <mat-icon>notifications</mat-icon>
-  </button>
+  <div class="header__notif-wrap">
+    <button mat-icon-button type="button" matTooltip="Notificações (3 novas)" aria-label="Notificações">
+      <mat-icon>notifications</mat-icon>
+    </button>
+    <span class="header__notif-badge">3</span>
+  </div>
+
+  @if (auth.user(); as user) {
+    <div class="header__user">
+      <span class="avatar avatar--header">{{ initials() }}</span>
+      <div class="header__user-text">
+        <strong>{{ user.nome }}</strong>
+        <small>{{ papelLabel() }}</small>
+      </div>
+      <mat-icon class="header__user-chevron">expand_more</mat-icon>
+    </div>
+  }
 </header>

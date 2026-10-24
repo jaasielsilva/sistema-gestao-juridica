@@ -41,6 +41,13 @@
   letter-spacing: 0.08em;
 }
 
+.welcome__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .welcome__action {
   flex: 0 0 auto;
   min-height: 44px;

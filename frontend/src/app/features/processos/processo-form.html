@@ -1,0 +1,155 @@
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true">
+    <mat-icon>{{ id() === null ? 'folder' : 'edit' }}</mat-icon>
+  </span>
+  <div class="page-header__text">
+    <h1>{{ id() === null ? 'Novo processo' : 'Editar processo' }}</h1>
+    <p>{{ id() === null ? 'Preencha os dados do processo judicial.' : formatNumero(processo()?.numero ?? '') }}</p>
+  </div>
+</header>
+
+@if (loading()) {
+  <div class="loading"><mat-spinner diameter="36" /></div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    @if (error(); as message) {
+      <p class="form-error" role="alert">{{ message }}</p>
+    }
+
+    <section class="panel">
+      <h2>Dados principais</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Número do Processo (CNJ)</mat-label>
+          <input
+            matInput
+            formControlName="numero"
+            placeholder="0000000-00.0000.0.00.0000"
+            maxlength="25"
+            (input)="mascararNumero()"
+            autocomplete="off"
+            required
+          />
+          @if (form.controls.numero.hasError('required')) {
+            <mat-error>Número do processo é obrigatório.</mat-error>
+          } @else if (form.controls.numero.hasError('cnj')) {
+            <mat-error>Número CNJ inválido.</mat-error>
+          } @else if (form.controls.numero.hasError('duplicado')) {
+            <mat-error>Já existe um processo com este número no escritório.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cliente</mat-label>
+          <mat-select formControlName="clienteId" required>
+            @for (cli of clientes(); track cli.id) {
+              <mat-option [value]="cli.id">
+                {{ cli.nome }} ({{ formatDocCliente(cli) }})
+              </mat-option>
+            }
+          </mat-select>
+          @if (form.controls.clienteId.hasError('required')) {
+            <mat-error>Selecione o cliente vinculado.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Tipo</mat-label>
+          <mat-select formControlName="tipo" required>
+            @for (t of tipos; track t.value) {
+              <mat-option [value]="t.value">{{ t.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Área Jurídica</mat-label>
+          <mat-select formControlName="areaJuridica" required>
+            @for (a of areas; track a) {
+              <mat-option [value]="a">{{ a }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Situação</mat-label>
+          <mat-select formControlName="situacao" required>
+            @for (s of situacoes; track s.value) {
+              <mat-option [value]="s.value">{{ s.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Foro e tribunal</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Tribunal</mat-label>
+          <input matInput formControlName="tribunal" placeholder="Ex.: TJSP - Comarca de São Paulo" required />
+          @if (form.controls.tribunal.hasError('required')) {
+            <mat-error>Tribunal é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Comarca</mat-label>
+          <input matInput formControlName="comarca" placeholder="Ex.: São Paulo" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Vara</mat-label>
+          <input matInput formControlName="vara" placeholder="Ex.: 1ª Vara Cível" />
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Responsável e prazos</h2>
+      <div class="grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Advogado Responsável</mat-label>
+          <input matInput formControlName="advogadoNome" placeholder="Nome do advogado" required />
+          @if (form.controls.advogadoNome.hasError('required')) {
+            <mat-error>Nome do advogado é obrigatório.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>OAB do Advogado</mat-label>
+          <input matInput formControlName="advogadoOab" placeholder="Ex.: OAB/SP 123.456" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Próximo Prazo (Data)</mat-label>
+          <input matInput type="date" formControlName="proximoPrazo" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="span-2">
+          <mat-label>Descrição do Prazo</mat-label>
+          <input matInput formControlName="proximoPrazoDescricao" placeholder="Ex.: Contestação, Audiência, etc." />
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Observações</h2>
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Observações internas</mat-label>
+        <textarea matInput formControlName="observacoes" rows="4" maxlength="2000"></textarea>
+      </mat-form-field>
+    </section>
+
+    <div class="actions">
+      <a mat-stroked-button routerLink="/processos">Cancelar</a>
+      <button mat-flat-button type="submit" [disabled]="saving()">
+        @if (saving()) {
+          <mat-spinner diameter="20" />
+        } @else {
+          <ng-container><mat-icon>save</mat-icon> Salvar</ng-container>
+        }
+      </button>
+    </div>
+  </form>
+}

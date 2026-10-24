@@ -1,0 +1,97 @@
+<div class="dialog">
+  <div class="dialog__header">
+    <div class="dialog__title-wrap">
+      <span class="dialog__icon" aria-hidden="true"><mat-icon>folder</mat-icon></span>
+      <div>
+        <h2 mat-dialog-title class="dialog__title">{{ numeroFormatado }}</h2>
+        <div class="dialog__badges">
+          <span class="badge-tipo">{{ tipoLabel }}</span>
+          <span class="badge" [class]="situacaoInfo.cssClass">{{ situacaoInfo.label }}</span>
+        </div>
+      </div>
+    </div>
+    <button mat-icon-button mat-dialog-close aria-label="Fechar modal">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="dialog__content">
+    <div class="section">
+      <h3 class="section__title"><mat-icon>gavel</mat-icon> Dados Judiciais</h3>
+      <div class="grid">
+        <div class="field">
+          <span class="field__label">Área Jurídica</span>
+          <span class="field__value">{{ data.areaJuridica }}</span>
+        </div>
+        <div class="field">
+          <span class="field__label">Tribunal</span>
+          <span class="field__value">{{ data.tribunal }}</span>
+        </div>
+        <div class="field">
+          <span class="field__label">Comarca</span>
+          <span class="field__value">{{ data.comarca || '—' }}</span>
+        </div>
+        <div class="field">
+          <span class="field__label">Vara</span>
+          <span class="field__value">{{ data.vara || '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 class="section__title"><mat-icon>person</mat-icon> Cliente e Responsável</h3>
+      <div class="grid">
+        <div class="field">
+          <span class="field__label">Cliente</span>
+          <span class="field__value"><strong>{{ data.clienteNome }}</strong></span>
+        </div>
+        <div class="field">
+          <span class="field__label">Documento</span>
+          <span class="field__value">{{ formatDoc() }} ({{ data.clienteTipo === 'PF' ? 'Pessoa física' : 'Pessoa jurídica' }})</span>
+        </div>
+        <div class="field">
+          <span class="field__label">Advogado Responsável</span>
+          <span class="field__value">{{ data.advogadoNome }}</span>
+        </div>
+        <div class="field">
+          <span class="field__label">OAB</span>
+          <span class="field__value">{{ data.advogadoOab || '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 class="section__title"><mat-icon>event</mat-icon> Prazos e Situação</h3>
+      <div class="grid">
+        <div class="field">
+          <span class="field__label">Próximo Prazo</span>
+          <span class="field__value">
+            <mat-icon class="icon-inline">calendar_today</mat-icon>
+            {{ formatData(data.proximoPrazo) }}
+          </span>
+        </div>
+        <div class="field">
+          <span class="field__label">Descrição do Prazo</span>
+          <span class="field__value">{{ data.proximoPrazoDescricao || (data.situacao === 'ENCERRADO' ? 'Processo encerrado' : '—') }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (data.observacoes) {
+      <div class="section">
+        <h3 class="section__title"><mat-icon>notes</mat-icon> Observações</h3>
+        <p class="field__text">{{ data.observacoes }}</p>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog__actions">
+    <button mat-button type="button" (click)="copiarNumero()">
+      <mat-icon>content_copy</mat-icon> Copiar CNJ
+    </button>
+    <button mat-button type="button" (click)="dialogRef.close()">Fechar</button>
+    <a mat-flat-button [routerLink]="['/processos', data.id, 'editar']" (click)="dialogRef.close()">
+      <mat-icon>edit</mat-icon> Editar
+    </a>
+  </mat-dialog-actions>
+</div>
