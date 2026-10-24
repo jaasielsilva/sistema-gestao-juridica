@@ -31,10 +31,12 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/sweetalert2/dist/sweetalert2.min.css"
             ],
             "allowedCommonJsDependencies": [
-              "qrcode"
+              "qrcode",
+              "sweetalert2"
             ]
           },
           "configurations": {
