@@ -15,6 +15,8 @@ export class ClienteService {
     if (f.busca.trim()) params = params.set('busca', f.busca.trim());
     if (f.tipo) params = params.set('tipo', f.tipo);
     if (f.status !== 'todos') params = params.set('ativo', f.status === 'ativos');
+    if (f.cidade.trim()) params = params.set('cidade', f.cidade.trim());
+    if (f.uf) params = params.set('uf', f.uf);
     return this.http.get<Page<Cliente>>(BASE, { params });
   }
 

@@ -5,17 +5,21 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, startWith } from 'rxjs';
 import { apiErrorMessage } from '../../core/auth/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { formatDocumento, formatTelefone } from '../../shared/br-format';
-import { Cliente, ClienteFiltro, ClienteResumo } from './cliente.models';
+import { ClienteDetalheDialog } from './cliente-detalhe-dialog';
+import { Cliente, ClienteFiltro, ClienteResumo, UFS } from './cliente.models';
 import { ClienteService } from './cliente.service';
 
 @Component({
@@ -27,7 +31,9 @@ import { ClienteService } from './cliente.service';
     MatPaginatorModule,
     MatButtonModule,
     MatIconModule,
+    MatInputModule,
     MatFormFieldModule,
+    MatMenuModule,
     MatSelectModule,
     MatProgressBarModule,
     MatTooltipModule,
@@ -39,13 +45,27 @@ import { ClienteService } from './cliente.service';
 export class ClientesList {
   private readonly service = inject(ClienteService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly dialog = inject(MatDialog);
   protected readonly auth = inject(AuthService);
 
-  protected readonly columns = ['nome', 'documento', 'tipo', 'contato', 'cidade', 'status', 'acoes'];
+  protected readonly columns = [
+    'nome',
+    'documento',
+    'tipo',
+    'contato',
+    'cidade',
+    'status',
+    'acoes',
+  ];
+  protected readonly ufs = UFS;
 
   protected readonly busca = new FormControl('', { nonNullable: true });
   protected readonly tipo = new FormControl<ClienteFiltro['tipo']>('', { nonNullable: true });
-  protected readonly status = new FormControl<ClienteFiltro['status']>('ativos', { nonNullable: true });
+  protected readonly status = new FormControl<ClienteFiltro['status']>('ativos', {
+    nonNullable: true,
+  });
+  protected readonly cidade = new FormControl('', { nonNullable: true });
+  protected readonly uf = new FormControl('', { nonNullable: true });
 
   protected readonly clientes = signal<Cliente[]>([]);
   protected readonly total = signal(0);
@@ -54,6 +74,8 @@ export class ClientesList {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly resumo = signal<ClienteResumo | null>(null);
+  protected readonly filtrosAvancadosAbertos = signal(false);
+  protected readonly filtrosAtivos = signal(1);
 
   protected readonly cartoes = computed(() => {
     const r = this.resumo();
@@ -69,10 +91,34 @@ export class ClientesList {
   constructor() {
     this.carregarResumo();
     this.busca.valueChanges
-      .pipe(startWith(this.busca.value), debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.carregar(0));
-    this.tipo.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.carregar(0));
-    this.status.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.carregar(0));
+      .pipe(
+        startWith(this.busca.value),
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        this.atualizarContagemFiltros();
+        this.carregar(0);
+      });
+    this.tipo.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.atualizarContagemFiltros();
+      this.carregar(0);
+    });
+    this.status.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.atualizarContagemFiltros();
+      this.carregar(0);
+    });
+    this.cidade.valueChanges
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.atualizarContagemFiltros();
+        this.carregar(0);
+      });
+    this.uf.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.atualizarContagemFiltros();
+      this.carregar(0);
+    });
   }
 
   protected documento(c: Cliente): string {
@@ -86,12 +132,36 @@ export class ClientesList {
   protected iniciais(nome: string): string {
     const partes = nome.split(/\s+/).filter((p) => /^\p{L}/u.test(p));
     if (!partes.length) return '?';
-    return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
+    return (
+      (partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')
+    ).toUpperCase();
   }
 
   protected mudarPagina(e: PageEvent): void {
     this.pageSize.set(e.pageSize);
     this.carregar(e.pageIndex);
+  }
+
+  protected limparFiltros(): void {
+    this.busca.setValue('', { emitEvent: false });
+    this.tipo.setValue('', { emitEvent: false });
+    this.status.setValue('todos', { emitEvent: false });
+    this.cidade.setValue('', { emitEvent: false });
+    this.uf.setValue('', { emitEvent: false });
+    this.atualizarContagemFiltros();
+    this.carregar(0);
+  }
+
+  protected alternarFiltrosAvancados(): void {
+    this.filtrosAvancadosAbertos.update((aberto) => !aberto);
+  }
+
+  protected visualizar(c: Cliente): void {
+    this.dialog.open(ClienteDetalheDialog, {
+      data: c,
+      width: '560px',
+      maxWidth: 'calc(100vw - 32px)',
+    });
   }
 
   protected alternarStatus(c: Cliente): void {
@@ -106,7 +176,19 @@ export class ClientesList {
   }
 
   private carregarResumo(): void {
-    this.service.resumo().subscribe({ next: (r) => this.resumo.set(r), error: () => this.resumo.set(null) });
+    this.service
+      .resumo()
+      .subscribe({ next: (r) => this.resumo.set(r), error: () => this.resumo.set(null) });
+  }
+
+  private atualizarContagemFiltros(): void {
+    this.filtrosAtivos.set(
+      Number(!!this.busca.value.trim()) +
+        Number(!!this.tipo.value) +
+        Number(this.status.value !== 'todos') +
+        Number(!!this.cidade.value.trim()) +
+        Number(!!this.uf.value),
+    );
   }
 
   private carregar(page: number): void {
@@ -117,6 +199,8 @@ export class ClientesList {
         busca: this.busca.value,
         tipo: this.tipo.value,
         status: this.status.value,
+        cidade: this.cidade.value,
+        uf: this.uf.value,
         page,
         size: this.pageSize(),
       })

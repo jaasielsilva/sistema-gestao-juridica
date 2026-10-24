@@ -24,18 +24,20 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ClienteResponse> listar(String busca, Boolean ativo, TipoPessoa tipo, int page, int size) {
+    public PageResponse<ClienteResponse> listar(String busca, Boolean ativo, TipoPessoa tipo, String cidade, String uf,
+                                                 int page, int size) {
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
                 Sort.by("nome").ascending().and(Sort.by("id")));
-        return PageResponse.of(clientes.findAll(filtro(busca, ativo, tipo), pageable), ClienteResponse::of);
+        return PageResponse.of(clientes.findAll(filtro(busca, ativo, tipo, cidade, uf), pageable), ClienteResponse::of);
     }
 
     @Transactional(readOnly = true)
     public ClienteResumo resumo() {
-        long ativos = clientes.count(filtro(null, true, null));
-        long inativos = clientes.count(filtro(null, false, null));
+        long ativos = clientes.count(filtro(null, true, null, null, null));
+        long inativos = clientes.count(filtro(null, false, null, null, null));
         return new ClienteResumo(ativos + inativos, ativos, inativos,
-                clientes.count(filtro(null, null, TipoPessoa.PF)), clientes.count(filtro(null, null, TipoPessoa.PJ)));
+                clientes.count(filtro(null, null, TipoPessoa.PF, null, null)),
+                clientes.count(filtro(null, null, TipoPessoa.PJ, null, null)));
     }
 
     @Transactional(readOnly = true)
@@ -121,7 +123,7 @@ public class ClienteService {
     }
 
     /** Filtros opcionais; o tenant e aplicado pelo Hibernate (@TenantId) em qualquer consulta. */
-    private static Specification<Cliente> filtro(String busca, Boolean ativo, TipoPessoa tipo) {
+    private static Specification<Cliente> filtro(String busca, Boolean ativo, TipoPessoa tipo, String cidade, String uf) {
         return (root, query, cb) -> {
             List<Predicate> and = new ArrayList<>();
             if (ativo != null) {
@@ -129,6 +131,13 @@ public class ClienteService {
             }
             if (tipo != null) {
                 and.add(cb.equal(root.get("tipo"), tipo));
+            }
+            if (cidade != null && !cidade.isBlank()) {
+                String termoCidade = "%" + escapar(cidade.trim().toLowerCase()) + "%";
+                and.add(cb.like(cb.lower(root.get("cidade")), termoCidade, '\\'));
+            }
+            if (uf != null && !uf.isBlank()) {
+                and.add(cb.equal(cb.upper(root.get("uf")), uf.trim().toUpperCase()));
             }
             if (busca != null && !busca.isBlank()) {
                 String termo = "%" + escapar(busca.trim().toLowerCase()) + "%";

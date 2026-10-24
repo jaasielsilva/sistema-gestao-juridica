@@ -93,7 +93,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 ### 4.5 Frontend
 - Telas públicas: login (com etapa de MFA), cadastro, esqueci a senha, redefinir senha, confirmar e-mail.
 - Área logada: layout com **cabeçalho**, **breadcrumb**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
-- **Clientes** (`features/clientes`): listagem paginada com busca e filtros (`/clientes`), cadastro (`/clientes/novo`) e edição (`/clientes/:id/editar`); máscaras/formatação de CPF/CNPJ/telefone em `shared/br-format.ts`.
+- **Clientes** (`features/clientes`): listagem paginada no servidor, cinco cartões de resumo, busca e filtros por tipo, situação, cidade e UF; ações de visualizar, editar e, para `ADMIN`, inativar/reativar. Cadastro (`/clientes/novo`) e edição (`/clientes/:id/editar`); máscaras/formatação de CPF/CNPJ/telefone em `shared/br-format.ts`.
 - Guards de rota, interceptor (token, renovação automática em 401, `X-Requested-With`), tratamento de erros sem expor detalhes técnicos.
 
 ### 4.6 Operação
@@ -183,7 +183,7 @@ A migrações `002`–`008` foram aplicadas com sucesso em revisão anterior sob
 | `POST /auth/logout-all`, `/change-password` | autenticado | Sessões e senha |
 | `POST /auth/mfa/setup`, `/enable`, `/disable` | autenticado | MFA |
 | `GET/POST /notas`, `GET/DELETE /notas/{id}` | autenticado | **Exemplo** com tenant |
-| `GET /clientes` (`busca`, `tipo`, `ativo`, `page`, `size`), `GET /clientes/{id}`, `POST /clientes`, `PUT /clientes/{id}` | autenticado | Cadastro de clientes (isolado por tenant) |
+| `GET /clientes` (`busca`, `tipo`, `ativo`, `cidade`, `uf`, `page`, `size`), `GET /clientes/{id}`, `POST /clientes`, `PUT /clientes/{id}` | autenticado | Cadastro de clientes (isolado por tenant) |
 | `POST /clientes/{id}/inativar`, `/reativar` | `ADMIN` | Altera a situação do cliente |
 | `GET /admin/auditoria` | `ADMIN` | Trilha de auditoria (paginada) |
 | `GET /actuator/health` | público | Saúde |
@@ -211,7 +211,7 @@ Obrigatórias no backend: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` (≥ 
 | `RegistrationDisabledIntegrationTest` | 1 | cadastro desligado |
 | `ClienteIntegrationTest` | 11 | módulo de clientes em SQL Server real |
 | `DocumentoTest` | 6 | validação de CPF/CNPJ |
-| Frontend (6 arquivos) | 29 | serviço de autenticação, interceptor (renovação única em 401), guards, login (MFA, reenvio), cadastro, formatação BR (`br-format`) |
+| Frontend (7 arquivos) | 31 | serviços de autenticação e clientes (incluindo filtros de localidade), interceptor, guards, login, cadastro e formatação BR |
 
 O banco de teste é criado a partir dos **scripts reais** e o Hibernate roda com `validate`: se uma entidade divergir do SQL, os testes falham.
 

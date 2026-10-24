@@ -31,9 +31,11 @@ public class ClienteController {
     public PageResponse<ClienteResponse> listar(@RequestParam(required = false) String busca,
                                                 @RequestParam(required = false) Boolean ativo,
                                                 @RequestParam(required = false) TipoPessoa tipo,
+                                                @RequestParam(required = false) String cidade,
+                                                @RequestParam(required = false) String uf,
                                                 @RequestParam(defaultValue = "0") int page,
                                                 @RequestParam(defaultValue = "10") int size) {
-        return service.listar(busca, ativo, tipo, page, size);
+        return service.listar(busca, ativo, tipo, cidade, uf, page, size);
     }
 
     @GetMapping("/resumo")

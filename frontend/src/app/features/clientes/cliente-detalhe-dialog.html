@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>Dados do cliente</h2>
+
+<mat-dialog-content>
+  <div class="detail-heading">
+    <span class="detail-avatar" aria-hidden="true">{{ cliente.nome.charAt(0).toUpperCase() }}</span>
+    <div>
+      <h3>{{ cliente.nome }}</h3>
+      <span class="detail-type">{{
+        cliente.tipo === 'PF' ? 'Pessoa física' : 'Pessoa jurídica'
+      }}</span>
+    </div>
+    <span class="detail-status" [class.detail-status--inactive]="!cliente.ativo">
+      {{ cliente.ativo ? 'Ativo' : 'Inativo' }}
+    </span>
+  </div>
+
+  <dl class="detail-list">
+    <div>
+      <dt>CPF / CNPJ</dt>
+      <dd>{{ documento() }}</dd>
+    </div>
+    <div>
+      <dt>E-mail</dt>
+      <dd>{{ cliente.email || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Telefone</dt>
+      <dd>{{ telefone() }}</dd>
+    </div>
+    <div>
+      <dt>Cidade / UF</dt>
+      <dd>{{ cliente.cidade ? cliente.cidade + (cliente.uf ? ' / ' + cliente.uf : '') : '—' }}</dd>
+    </div>
+    <div class="detail-list__wide">
+      <dt>Endereço</dt>
+      <dd>
+        @if (cliente.logradouro) {
+          {{ cliente.logradouro }}{{ cliente.numero ? ', ' + cliente.numero : ''
+          }}{{ cliente.complemento ? ' - ' + cliente.complemento : '' }}
+          @if (cliente.bairro) {
+            <span> · {{ cliente.bairro }}</span>
+          }
+          @if (cliente.cep) {
+            <span> · CEP {{ cliente.cep }}</span>
+          }
+        } @else {
+          —
+        }
+      </dd>
+    </div>
+    @if (cliente.observacoes) {
+      <div class="detail-list__wide">
+        <dt>Observações</dt>
+        <dd>{{ cliente.observacoes }}</dd>
+      </div>
+    }
+  </dl>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="fechar()">Fechar</button>
+</mat-dialog-actions>
