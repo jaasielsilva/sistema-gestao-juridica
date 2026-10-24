@@ -49,8 +49,8 @@
 
   small {
     margin-top: 2px;
-    color: #9fbdbc;
-    font-size: 11px;
+    color: #b5cfcb;
+    font-size: 12px;
   }
 }
 
@@ -82,9 +82,10 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #dcebe9;
+  color: #edf6f5;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -102,7 +103,10 @@
 
   mat-icon {
     flex: 0 0 auto;
-    color: #bfe3dc;
+    width: 22px;
+    height: 22px;
+    color: #c8e2de;
+    font-size: 22px;
   }
 
   span {
@@ -112,7 +116,7 @@
   &.is-active {
     background: var(--brand-accent);
     color: #fff;
-    font-weight: 600;
+    font-weight: 500;
 
     mat-icon {
       color: #fff;
@@ -144,7 +148,7 @@
 
 .nav-link--child {
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .user-card {
@@ -200,7 +204,7 @@
   }
 
   small {
-    color: #9fbdbc;
+    color: #b5cfcb;
     font-size: 12px;
   }
 }
