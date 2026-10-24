@@ -92,7 +92,7 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 
 ### 4.5 Frontend
 - Telas públicas: login (com etapa de MFA), cadastro, esqueci a senha, redefinir senha, confirmar e-mail.
-- Área logada: layout com **cabeçalho**, **breadcrumb**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
+- Área logada: layout com **cabeçalho**, **breadcrumb**, **menu lateral** (gaveta no celular), **rodapé fixo no fim da janela**, tema claro/escuro, painel inicial (`/inicio`) com resumo de clientes e atalhos, página **Segurança** (dados da conta, MFA, troca de senha, sair de todos os dispositivos).
 - **Clientes** (`features/clientes`): listagem paginada no servidor, cinco cartões de resumo, busca e filtros por tipo, situação, cidade e UF; ações de visualizar, editar e, para `ADMIN`, inativar/reativar. Cadastro (`/clientes/novo`) e edição (`/clientes/:id/editar`); máscaras/formatação de CPF/CNPJ/telefone em `shared/br-format.ts`.
 - Guards de rota, interceptor (token, renovação automática em 401, `X-Requested-With`), tratamento de erros sem expor detalhes técnicos.
 
