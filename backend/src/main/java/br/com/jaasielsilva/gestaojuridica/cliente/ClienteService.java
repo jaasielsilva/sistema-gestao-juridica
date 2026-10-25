@@ -133,17 +133,18 @@ public class ClienteService {
                 and.add(cb.equal(root.get("tipo"), tipo));
             }
             if (cidade != null && !cidade.isBlank()) {
-                String termoCidade = "%" + escapar(cidade.trim().toLowerCase()) + "%";
-                and.add(cb.like(cb.lower(root.get("cidade")), termoCidade, '\\'));
+                // O banco usa collation case-insensitive (CI_AS): sem lower() nas colunas o índice ix_cliente_busca cobre o filtro.
+                String termoCidade = "%" + escapar(cidade.trim()) + "%";
+                and.add(cb.like(root.get("cidade"), termoCidade, '\\'));
             }
             if (uf != null && !uf.isBlank()) {
-                and.add(cb.equal(cb.upper(root.get("uf")), uf.trim().toUpperCase()));
+                and.add(cb.equal(root.get("uf"), uf.trim().toUpperCase()));
             }
             if (busca != null && !busca.isBlank()) {
-                String termo = "%" + escapar(busca.trim().toLowerCase()) + "%";
+                String termo = "%" + escapar(busca.trim()) + "%";
                 List<Predicate> or = new ArrayList<>();
-                or.add(cb.like(cb.lower(root.get("nome")), termo, '\\'));
-                or.add(cb.like(cb.lower(root.get("email")), termo, '\\'));
+                or.add(cb.like(root.get("nome"), termo, '\\'));
+                or.add(cb.like(root.get("email"), termo, '\\'));
                 String digitos = Documento.somenteDigitos(busca);
                 if (!digitos.isEmpty()) {
                     or.add(cb.like(root.get("documento"), "%" + digitos + "%"));
