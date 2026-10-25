@@ -1,0 +1,80 @@
+# Implantacao isolada na VPS.
+# Requer .env com os segredos e .env.smtp (pode estar vazio ate configurar o SMTP).
+# O Nginx do host encaminha o dominio para 127.0.0.1:3010 somente depois de configurar DNS/TLS.
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Express
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    # Só loopback: acesso administrativo por túnel SSH (nunca publicar em 0.0.0.0).
+    ports:
+      - "127.0.0.1:1433:1433"
+    volumes:
+      - dbdata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    mem_limit: 2g
+    restart: unless-stopped
+
+  db-scripts:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["bash", "/database/apply.sh"]
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: sa
+      DB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+      APP_DB_USER: ${APP_DB_USER:-app_runtime}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+    volumes:
+      - ./database:/database:ro
+    restart: "no"
+
+  backend:
+    build: ./backend
+    depends_on:
+      db-scripts:
+        condition: service_completed_successfully
+    environment:
+      DB_URL: jdbc:sqlserver://db:1433;databaseName=${DB_NAME:-appdb};encrypt=true;trustServerCertificate=true
+      DB_USER: ${APP_DB_USER:-app_runtime}
+      DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?defina MFA_ENCRYPTION_KEY no .env}
+      APP_BASE_URL: https://erpcorporativo.cloud
+      REGISTRATION_ENABLED: "false"
+      COOKIE_SECURE: "true"
+      FORWARD_HEADERS_STRATEGY: native
+      CORS_ALLOWED_ORIGINS: https://erpcorporativo.cloud,https://www.erpcorporativo.cloud
+      SWAGGER_ENABLED: "false"
+      MAIL_FROM: ${MAIL_FROM:-no-reply@erpcorporativo.cloud}
+    env_file:
+      - path: ./.env.smtp
+        required: false
+    expose:
+      - "8080"
+    mem_limit: 1g
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:3010:80"
+    volumes:
+      - ./frontend/nginx/locations.conf:/etc/nginx/snippets/locations.conf:ro
+      - ./frontend/nginx/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
+    restart: unless-stopped
+
+volumes:
+  dbdata:

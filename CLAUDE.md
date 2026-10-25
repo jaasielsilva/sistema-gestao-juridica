@@ -34,6 +34,11 @@ cd frontend && npm start                            # dev em :4200 com proxy /ap
 cd frontend && npx ng test --watch=false && npx ng build
 ```
 
+## Deploy (produção)
+- Fluxo: PR → CI (`ci.yml`) → merge na `main` (protegida, só por PR) → `deploy.yml` publica na VPS sozinho (ADR 0005).
+- Na VPS (`/opt/gestao-juridica`, `docker-compose.vps.yml`) roda `scripts/deploy-vps.sh <sha>`: backup do banco, scripts SQL, build, verificação e rollback do código.
+- Segredos de produção ficam em `.env`/`.env.smtp` na VPS e nos secrets do GitHub (environment `producao`); nunca no repositório.
+
 ## Regras do projeto
 1. **Não use Flyway/Liquibase.** O schema muda por script SQL novo em `database/scripts/`, revisado em PR.
 2. **Nunca edite um script já publicado.** `apply.sh` detecta mudança de checksum e falha. Crie o próximo número.
