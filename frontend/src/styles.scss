@@ -78,6 +78,21 @@ body {
 .form-submit {
   margin-top: 10px;
   height: 40px;
+
+  // Ícone + texto na mesma linha, centralizados na vertical e na horizontal.
+  .mdc-button__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .mat-icon {
+    margin: 0;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+  }
 }
 
 .form-links {
