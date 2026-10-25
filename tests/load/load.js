@@ -71,6 +71,8 @@ if (!PERFIS[PERFIL]) {
 
 export const options = {
   scenarios: { [PERFIL]: PERFIS[PERFIL] },
+  // O k6 zera os cookies a cada iteração por padrão; sem isto o cookie de refresh se perde e a renovação do token falha (401).
+  noCookiesReset: true,
   summaryTrendStats: ['avg', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
   thresholds: {
     http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: false }],

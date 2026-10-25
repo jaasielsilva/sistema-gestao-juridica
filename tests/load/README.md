@@ -45,6 +45,9 @@ O k6 sai com código 99 quando algum limite é ultrapassado (esperado no stress)
 - Os dados de `database/seed/` têm seus próprios scripts `carga_*_limpar.sql`.
 
 ## Cuidados
+- **Rate limit do nginx (429):** o frontend limita 30 req/s por IP (burst 60). Como o k6 sai de um único IP, uma carga acima disso
+  recebe 429, que o k6 conta como erro. Para medir só a aplicação, libere o IP do gerador (ou rode de vários IPs) durante o teste.
+  Em produção o limite por IP também pode atingir escritórios inteiros atrás de um mesmo IP (NAT).
 - Rode de uma máquina fora do servidor. Sem carga concorrente de outros sistemas na VPS, os números são fiéis;
   se houver outros apps na mesma VPS, a medição os inclui.
 - Observe CPU/memória do banco e do backend durante o teste (Grafana ou `docker stats`).
