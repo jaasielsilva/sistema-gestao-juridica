@@ -6,3 +6,5 @@ target/
 *.iml
 .vscode/
 .DS_Store
+tests/load/.senha-teste
+tests/load/resultados/
