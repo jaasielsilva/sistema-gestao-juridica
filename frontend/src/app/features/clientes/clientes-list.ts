@@ -14,13 +14,16 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
-import { debounceTime, distinctUntilChanged, startWith } from 'rxjs';
+import { Subscription, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs';
 import { apiErrorMessage } from '../../core/auth/api-error';
 import { AuthService } from '../../core/auth/auth.service';
 import { formatDocumento, formatTelefone } from '../../shared/br-format';
 import { ClienteDetalheDialog } from './cliente-detalhe-dialog';
 import { Cliente, ClienteFiltro, ClienteResumo, UFS } from './cliente.models';
 import { ClienteService } from './cliente.service';
+
+/** Abaixo disso o backend recusa a busca (ela varreria muitos registros); o front nem envia. */
+const MIN_BUSCA = 3;
 
 @Component({
   selector: 'app-clientes-list',
@@ -73,6 +76,7 @@ export class ClientesList {
   protected readonly pageSize = signal(10);
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  private requisicao?: Subscription;
   protected readonly resumo = signal<ClienteResumo | null>(null);
   protected readonly filtrosAvancadosAbertos = signal(false);
   protected readonly filtrosAtivos = signal(1);
@@ -94,6 +98,7 @@ export class ClientesList {
       .pipe(
         startWith(this.busca.value),
         debounceTime(300),
+        map((v) => this.termoBusca(v)),
         distinctUntilChanged(),
         takeUntilDestroyed(this.destroyRef),
       )
@@ -183,7 +188,7 @@ export class ClientesList {
 
   private atualizarContagemFiltros(): void {
     this.filtrosAtivos.set(
-      Number(!!this.busca.value.trim()) +
+      Number(!!this.termoBusca(this.busca.value)) +
         Number(!!this.tipo.value) +
         Number(this.status.value !== 'todos') +
         Number(!!this.cidade.value.trim()) +
@@ -191,12 +196,19 @@ export class ClientesList {
     );
   }
 
+  private termoBusca(valor: string): string {
+    const termo = valor.trim();
+    return termo.length >= MIN_BUSCA ? termo : '';
+  }
+
   private carregar(page: number): void {
     this.loading.set(true);
     this.error.set(null);
-    this.service
+    // Cancela a consulta anterior: respostas antigas nao sobrescrevem a mais recente.
+    this.requisicao?.unsubscribe();
+    this.requisicao = this.service
       .listar({
-        busca: this.busca.value,
+        busca: this.termoBusca(this.busca.value),
         tipo: this.tipo.value,
         status: this.status.value,
         cidade: this.cidade.value,
