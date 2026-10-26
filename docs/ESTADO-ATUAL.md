@@ -228,7 +228,7 @@ O banco de teste é criado a partir dos **scripts reais** e o Hibernate roda com
 
 ### 10.3 Teste de carga em produção (k6) — 2026-10-26
 
-**Quando:** 26/10/2026, concluído antes das 11:14 (horário local da máquina de teste; o k6 não registra o horário de início). Duração: 13 min 13 s.
+**Quando:** 26/10/2026, das ~10:59 às 11:12 (horário local da máquina de teste; o início é deduzido da hora de gravação do resumo e da duração). Duração: 13 min 13 s. Resumo bruto do k6 em `docs/testes-de-carga/2026-10-26-load-50vu-think4.json` (no formato `--summary-export`, `"thresholds": {...: false}` significa limite **não** ultrapassado).
 **Contra:** `https://erpcorporativo.cloud` (VPS compartilhada com outros sistemas; SQL Server Express em contêiner de 2 GiB, backend com 1 GiB).
 **Versão testada:** `main` no commit `d11b208` (inclui busca de clientes por prefixo, índices `012`, RCSI `013`).
 **Ferramenta e script:** k6, `tests/load/load.js`, perfil `load`, parâmetros `THINK=4`. Cada usuário virtual faz login, lista/busca clientes (páginas iniciais, profundas, filtros, por nome e por documento), abre cliente e processo, lista processos (situação, tipo, cliente), consulta resumos e, em parte das iterações, cria e edita clientes e cria processos (marcados `CARGA_K6`).
