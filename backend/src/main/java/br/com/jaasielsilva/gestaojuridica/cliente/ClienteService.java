@@ -41,11 +41,24 @@ public class ClienteService {
 
     @Transactional(readOnly = true)
     public ClienteResumo resumo() {
-        long ativos = clientes.count(filtro(null, true, null, null, null));
-        long inativos = clientes.count(filtro(null, false, null, null, null));
-        return new ClienteResumo(ativos + inativos, ativos, inativos,
-                clientes.count(filtro(null, null, TipoPessoa.PF, null, null)),
-                clientes.count(filtro(null, null, TipoPessoa.PJ, null, null)));
+        long ativos = 0;
+        long inativos = 0;
+        long pf = 0;
+        long pj = 0;
+        for (Object[] linha : clientes.contarPorAtivoETipo()) {
+            long quantidade = (Long) linha[2];
+            if ((Boolean) linha[0]) {
+                ativos += quantidade;
+            } else {
+                inativos += quantidade;
+            }
+            if (linha[1] == TipoPessoa.PF) {
+                pf += quantidade;
+            } else {
+                pj += quantidade;
+            }
+        }
+        return new ClienteResumo(ativos + inativos, ativos, inativos, pf, pj);
     }
 
     @Transactional(readOnly = true)

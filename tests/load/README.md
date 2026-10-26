@@ -26,7 +26,7 @@ k6 run -e PERFIL=smoke -e "SENHA=$senha" tests\load\load.js
 | `spike` | salta de 10 para 200 usuários em 10 s | ~4 min |
 | `soak` | 30 usuários por 90 min (vazamento de memória/conexões) | ~95 min |
 
-Opções (`-e`): `BASE_URL` (padrão `https://erpcorporativo.cloud`), `USUARIOS` (padrão 50), `THINK` (pausa média entre
+Opções (`-e`): `BASE_URL` (padrão `https://erpcorporativo.cloud`), `USUARIOS` (quantos usuários de teste existem, padrão 50; com mais VUs que isso os usuários se repetem), `VUS` (simultâneos do perfil `load`, padrão 50), `THINK` (pausa média entre
 ações em segundos; `0` = máxima vazão), `ESCRITA` (fração de iterações que gravam, padrão 0.08).
 Use `--summary-export=arquivo.json` para guardar o resultado.
 

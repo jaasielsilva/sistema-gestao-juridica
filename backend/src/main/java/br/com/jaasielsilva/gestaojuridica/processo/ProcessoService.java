@@ -41,11 +41,22 @@ public class ProcessoService {
 
     @Transactional(readOnly = true)
     public ProcessoResumo resumo() {
-        long emAndamento = processos.count(filtro(null, null, null, null, null, SituacaoProcesso.EM_ANDAMENTO));
-        long suspensos = processos.count(filtro(null, null, null, null, null, SituacaoProcesso.SUSPENSO));
-        long encerrados = processos.count(filtro(null, null, null, null, null, SituacaoProcesso.ENCERRADO));
-        long urgentes = processos.count(filtro(null, null, null, null, null, SituacaoProcesso.URGENTE));
-        long total = processos.count(filtro(null, null, null, null, null, null));
+        long total = 0;
+        long emAndamento = 0;
+        long suspensos = 0;
+        long encerrados = 0;
+        long urgentes = 0;
+        for (Object[] linha : processos.contarPorSituacao()) {
+            long quantidade = (Long) linha[1];
+            total += quantidade;
+            switch ((SituacaoProcesso) linha[0]) {
+                case EM_ANDAMENTO -> emAndamento = quantidade;
+                case SUSPENSO -> suspensos = quantidade;
+                case ENCERRADO -> encerrados = quantidade;
+                case URGENTE -> urgentes = quantidade;
+                default -> { }
+            }
+        }
         return new ProcessoResumo(total, emAndamento, suspensos, encerrados, urgentes);
     }
 
