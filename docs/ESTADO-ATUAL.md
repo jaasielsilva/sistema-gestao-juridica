@@ -3,10 +3,12 @@
 | | |
 |---|---|
 | **Projeto** | Sistema de Gestão Jurídica (derivado da casca genérica de produto) |
-| **Data de referência** | 2026-10-23 |
-| **Versão do documento** | 1.2 |
+| **Data de referência** | 2026-10-26 (§10.3 e §12–§15 atualizados; demais seções conforme 2026-10-23) |
+| **Versão do documento** | 1.3 |
 | **Referência no código** | branch `main`, commit `35f2c58` (merge do módulo de clientes); CI validado até `0b71a6e` |
 | **Escopo** | Backend (Spring Boot), frontend (Angular), banco (SQL Server), infraestrutura (Docker/CI) e segurança |
+
+> **Revisão 1.3 (2026-10-26):** primeiro **teste de carga em produção** (k6, 50 usuários, 201 mil clientes e 201 mil processos) e a otimização da busca de clientes (§10.3). Esta revisão atualizou apenas §10.3, §12, §13, §15 e §16; as demais seções (por exemplo o módulo de processos e o deploy na VPS, scripts `011`–`013`) ainda não foram revisadas em detalhe.
 
 > **Revisão 1.2 (2026-10-23):** entraram o módulo de **clientes** (migration `010`, API `/clientes`, telas em `features/clientes`), o novo layout da área logada e o rename do produto. Esse código **ainda não teve testes/CI confirmados nesta revisão**; os indicadores abaixo referem-se ao commit `0b71a6e`.
 
@@ -224,6 +226,35 @@ O banco de teste é criado a partir dos **scripts reais** e o Hibernate roda com
 - Layout em tela larga (menu fixo) e estreita (gaveta); rodapé sempre no fim da janela.
 - Permissões do `app_runtime`, HTTPS/HSTS e limite do nginx (§5).
 
+### 10.3 Teste de carga em produção (k6) — 2026-10-26
+
+**Quando:** 26/10/2026, concluído antes das 11:14 (horário local da máquina de teste; o k6 não registra o horário de início). Duração: 13 min 13 s.
+**Contra:** `https://erpcorporativo.cloud` (VPS compartilhada com outros sistemas; SQL Server Express em contêiner de 2 GiB, backend com 1 GiB).
+**Versão testada:** `main` no commit `d11b208` (inclui busca de clientes por prefixo, índices `012`, RCSI `013`).
+**Ferramenta e script:** k6, `tests/load/load.js`, perfil `load`, parâmetros `THINK=4`. Cada usuário virtual faz login, lista/busca clientes (páginas iniciais, profundas, filtros, por nome e por documento), abre cliente e processo, lista processos (situação, tipo, cliente), consulta resumos e, em parte das iterações, cria e edita clientes e cria processos (marcados `CARGA_K6`).
+**Carga:** rampa até 50 usuários simultâneos (2 min), 10 min estáveis, 1 min de descida. Tenant de teste com **201.710 clientes e 201.666 processos**; 50 usuários `carga*@carga.teste`.
+**Por que `THINK=4`:** o nginx limita 30 req/s por IP (burst 60) e o IP do gerador de carga não pôde ser liberado; com a pausa de 4 s o teste gerou ~13 req/s, dentro do limite, sem nenhum 429.
+
+| Tipo | p95 medido | Limite (p95) | p99 medido |
+|---|---|---|---|
+| Busca (nome e documento) | 136 ms | 1.500 ms | 355 ms |
+| Escrita (criar/editar) | 190 ms | 1.000 ms | 493 ms |
+| Leitura (listagens, detalhes, resumos) | 253 ms | 500 ms | 522 ms (limite 1.500 ms) |
+| Login | 714 ms | 1.500 ms | 1,12 s |
+| Requisições com falha | 0,00% | < 1% | |
+
+Totais: 10.561 requisições, 8.418 iterações, 9.129 verificações, **100% aprovadas, todos os limites cumpridos**. Maior latência individual: 2,54 s (leitura). Foram criados 674 clientes e 662 processos de teste (`CARGA_K6`); a limpeza é feita com `tests/load/limpar-dados-k6.sql`.
+
+**Recursos durante o teste (`docker stats`, 4 leituras):** backend 5–40% de CPU e 346–380 MiB (estável); banco 45–100% de CPU e ~1,0 GiB. O **banco é o primeiro recurso a esgotar**.
+
+**Antes disso (smoke, 2 usuários, mesma data):** todos os limites cumpridos; leitura p95 322 ms, busca p95 112 ms.
+
+**O que este teste NÃO mostra:** a vazão máxima (perfis `stress`/`spike`/`soak` não foram executados); comportamento com vários tenants ativos ao mesmo tempo; desempenho fora do ruído de uma VPS compartilhada.
+
+**Mudanças de desempenho feitas antes do teste:**
+- Scripts `012` (índices `ix_cliente_busca` e `ix_cliente_tenant_status`) e `013` (READ_COMMITTED_SNAPSHOT).
+- Busca de clientes sem curinga inicial: CPF/CNPJ completo por igualdade; e-mail e nome por **prefixo**; mínimo de 3 caracteres (o backend responde 400 abaixo disso e o front não envia a busca). **Mudança de comportamento:** buscar pelo sobrenome (meio do nome) não encontra mais.
+
 ---
 
 ## 11. Vulnerabilidades (varredura de 2026-10-10, Trivy 0.58.0)
@@ -256,6 +287,7 @@ Comandos reproduzíveis estão no `CLAUDE.md`/CI. Resultado final: **0 HIGH/CRIT
 - **`MFA_ENCRYPTION_KEY`**: perder/trocar invalida os MFAs configurados; não há rotação automática de chave.
 - **Cadastro público** permite enumeração por "e-mail já cadastrado" (mitigada por limite por IP); produtos sensíveis devem desligar o cadastro ou usar convite.
 - Sem CAPTCHA/anti-bot, sem aviso por e-mail de login suspeito, sem política de expiração/histórico de senhas, sem exigência de MFA para ADMIN, sem verificação de senhas vazadas.
+- **Desempenho (medido em 2026-10-26, §10.3):** o banco chegou a 100% de CPU com 50 usuários; o SQL Server **Express** limita o cache de dados (~1,4 GB), e a VPS é compartilhada. A busca por trecho no meio do nome não existe mais (só prefixo); `resumo()` de clientes e de processos fazem 5 `count()` cada; a listagem de processos ainda não tem índice para os filtros tipo/área/tribunal; paginação por offset com `count(*)`.
 - Cada request autenticado faz **1 consulta** de sessão (índice por PK) — escala bem, mas é um custo.
 - O IP registrado depende do proxy: **no Docker Desktop local aparece o gateway** (`172.x.0.1`), não o IP real. Em produção, o proxy/balanceador precisa repassar `X-Forwarded-For` corretamente.
 - O redirecionamento HTTP→HTTPS do override assume a porta 443 (produção); localmente acesse `https://localhost:8443` direto.
@@ -277,9 +309,9 @@ Comandos reproduzíveis estão no `CLAUDE.md`/CI. Resultado final: **0 HIGH/CRIT
 - **Execução agendada do CI** (toda segunda, 09:00 UTC): configurada, mas ainda não houve uma execução agendada. O Trivy do CI usa a versão fixa 0.58.0 (precisa ser atualizada manualmente de tempos em tempos).
 - **Proteção de branch** no GitHub (exigir CI verde antes de mesclar): não configurada.
 - **`HousekeepingJob`** (limpeza diária): sem teste automatizado.
-- **Módulo de clientes**: os 17 testes do backend e os 5 de `br-format` foram escritos mas não executados nesta revisão; sem testes das telas `clientes-list`/`cliente-form`; migration `010` não validada em homologação; desempenho com os scripts de `database/seed` não medido.
+- **Módulo de clientes**: os 17 testes do backend e os 5 de `br-format` foram escritos mas não executados nesta revisão; sem testes das telas `clientes-list`/`cliente-form`; migration `010` não validada em homologação; desempenho com os scripts de `database/seed` medido em 2026-10-26 (§10.3).
 - **Frontend**: sem testes automatizados para as telas *esqueci/redefinir senha*, *confirmar e-mail* e *Segurança* (o fluxo foi exercitado manualmente no navegador).
-- **Carga/desempenho**, **teste de intrusão** e **revisão de segurança independente**: não realizados.
+- **Carga/desempenho:** executado só o perfil `load` (50 usuários, `THINK=4`) e o `smoke` em 2026-10-26 (§10.3). **Não realizados:** `stress`, `spike` e `soak`, teste com muitos tenants simultâneos e medição fora do ruído da VPS compartilhada. **Teste de intrusão** e **revisão de segurança independente** também não foram realizados.
 - **Rodar contra o SQL Server local do usuário** (`GENERICOPRIVILEGIADO`): não executado (exigiria credenciais); há passo a passo no `README.md`.
 - Imagens/dependências foram varridas **hoje**; novas CVEs surgirão — por isso o CI roda toda segunda-feira.
 
@@ -299,6 +331,7 @@ Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preenc
 
 ## 15. Próximos passos recomendados (ordem sugerida)
 
+0. **Desempenho (resultado do §10.3):** (a) script `014` com índices da listagem de processos, nos moldes do `012`; (b) unificar os `resumo()` em uma consulta cada (ou cache curto); (c) executar `stress`/`spike` com um caminho para contornar o limite do nginx (ou de outra máquina liberada) e registrar o ponto de saturação; (d) avaliar Full-Text Search se for preciso buscar pelo meio do nome; (e) cursor no lugar de offset nas listas grandes; (f) mínimo de 3 letras também no autocomplete de cliente do cadastro de processo; (g) apagar/desativar os usuários `carga*@carga.teste` ao fim dos testes.
 1. Ligar a proteção de branch no GitHub exigindo CI verde; atualizar a versão fixa do Trivy no `ci.yml` periodicamente.
 2. Planejar a migração para **Spring Boot 4** (remove as exceções do §11).
 3. Testar o MFA com um aplicativo real e o fluxo de e-mail com SMTP real.
@@ -314,7 +347,7 @@ Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preenc
 ```
 backend/            API Spring Boot (auth/, user/, security/, tenant/, audit/, mail/, shared/, cliente/, nota/ [exemplo])
 frontend/           Angular (core/, layout/, features/, shared/) + nginx (nginx/*.conf) + Dockerfile
-database/           scripts/ (000–010), seed/ (carga de clientes para teste de desempenho), post/grants.sql, apply.sh, README.md
+database/           scripts/ (000–013), seed/ (carga de clientes para teste de desempenho), post/grants.sql, apply.sh, README.md
 docs/               ESTADO-ATUAL.md (este), adr/ (0001–0004), product/ (PRD, checklist de lançamento)
 infrastructure/https/  gerador de certificado autoassinado (teste local)
 scripts/            init-project.ps1
