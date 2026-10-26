@@ -39,10 +39,11 @@ sqlcmd_db() {
 }
 
 # Backup antes de qualquer script SQL novo (fica no volume do banco; mantém os 5 mais recentes).
+# Sem WITH COMPRESSION: a edição Express do SQL Server não suporta. A saída do sqlcmd fica visível para diagnosticar falhas.
 if docker inspect -f '{{.State.Running}}' gestaojuridica-db-1 2>/dev/null | grep -q true; then
   echo "== Backup do banco"
   docker exec gestaojuridica-db-1 mkdir -p /var/opt/mssql/backups
-  sqlcmd_db "-Q \"BACKUP DATABASE [$DB_NAME] TO DISK=N'/var/opt/mssql/backups/pre-deploy-${SHA:0:12}.bak' WITH COMPRESSION, INIT\"" >/dev/null
+  sqlcmd_db "-Q \"BACKUP DATABASE [$DB_NAME] TO DISK=N'/var/opt/mssql/backups/pre-deploy-${SHA:0:12}.bak' WITH INIT\""
   docker exec gestaojuridica-db-1 bash -c 'ls -1t /var/opt/mssql/backups/pre-deploy-*.bak | tail -n +6 | xargs -r rm -f'
 fi
 
