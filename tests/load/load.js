@@ -13,6 +13,7 @@ const SENHA = __ENV.SENHA;
 const USUARIOS = parseInt(__ENV.USUARIOS || '50', 10);
 const PERFIL = __ENV.PERFIL || 'smoke';
 const THINK = parseFloat(__ENV.THINK || '1'); // segundos médios entre ações; 0 = máxima vazão
+const VUS = parseInt(__ENV.VUS || '50', 10); // usuarios simultaneos do perfil load
 const ESCRITA = parseFloat(__ENV.ESCRITA || '0.08'); // fração de iterações que escrevem
 
 if (!SENHA) {
@@ -26,8 +27,8 @@ const PERFIS = {
   load: {
     executor: 'ramping-vus',
     stages: [
-      { duration: '2m', target: 50 },
-      { duration: '10m', target: 50 },
+      { duration: '2m', target: VUS },
+      { duration: '10m', target: VUS },
       { duration: '1m', target: 0 },
     ],
   },
