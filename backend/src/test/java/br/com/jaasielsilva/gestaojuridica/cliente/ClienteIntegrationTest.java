@@ -144,12 +144,21 @@ class ClienteIntegrationTest extends IntegrationTestBase {
         criarOk(adminA, """
                 {"tipo":"PF","nome":"Maria Souza","documento":"529.982.247-25","cidade":"Sao Paulo","uf":"SP"}""");
         criarOk(adminA, """
-                {"tipo":"PJ","nome":"Tech Ltda","documento":"11.222.333/0001-81","cidade":"Rio de Janeiro","uf":"RJ"}""");
+                {"tipo":"PJ","nome":"Tech Ltda","documento":"11.222.333/0001-81","email":"contato@tech.com","cidade":"Rio de Janeiro","uf":"RJ"}""");
 
         consultar(userA, "/api/v1/clientes").andExpect(jsonPath("$.totalElements").value(2));
         consultar(userA, "/api/v1/clientes?busca=maria").andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].nome").value("Maria Souza"));
         consultar(userA, "/api/v1/clientes?busca=529.982").andExpect(jsonPath("$.totalElements").value(1));
+        // CPF/CNPJ completo (com ou sem mascara): igualdade; e-mail: prefixo.
+        consultar(userA, "/api/v1/clientes?busca=529.982.247-25").andExpect(jsonPath("$.totalElements").value(1));
+        consultar(userA, "/api/v1/clientes?busca=11222333000181").andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].nome").value("Tech Ltda"));
+        // Nome e por prefixo: o meio do nome nao casa mais (seek no indice em vez de varredura).
+        consultar(userA, "/api/v1/clientes?busca=contato@").andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].nome").value("Tech Ltda"));
+        consultar(userA, "/api/v1/clientes?busca=tech.com").andExpect(jsonPath("$.totalElements").value(0));
+        consultar(userA, "/api/v1/clientes?busca=souza").andExpect(jsonPath("$.totalElements").value(0));
         consultar(userA, "/api/v1/clientes?tipo=PJ").andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].nome").value("Tech Ltda"));
         consultar(userA, "/api/v1/clientes?cidade=sao").andExpect(jsonPath("$.totalElements").value(1))
@@ -159,8 +168,14 @@ class ClienteIntegrationTest extends IntegrationTestBase {
         consultar(userA, "/api/v1/clientes?cidade=rio&uf=RJ").andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].nome").value("Tech Ltda"));
         // Caracteres curinga da busca nao viram "qualquer coisa".
-        consultar(userA, "/api/v1/clientes?busca=_").andExpect(jsonPath("$.totalElements").value(0));
+        consultar(userA, "/api/v1/clientes?busca=___").andExpect(jsonPath("$.totalElements").value(0));
         consultar(userA, "/api/v1/clientes?cidade=_").andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void buscaCurtaDemaisERejeitada() throws Exception {
+        consultar(userA, "/api/v1/clientes?busca=ma").andExpect(status().isBadRequest());
+        consultar(userA, "/api/v1/clientes?busca=%20%20").andExpect(status().isOk());
     }
 
     @Test

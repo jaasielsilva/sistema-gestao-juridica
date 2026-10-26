@@ -1,7 +1,9 @@
 package br.com.jaasielsilva.gestaojuridica.cliente;
 
 import br.com.jaasielsilva.gestaojuridica.shared.BusinessException;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -11,11 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class ClienteService {
 
     static final int MAX_PAGE_SIZE = 100;
+    static final int MIN_BUSCA = 3;
+    private static final Pattern SOMENTE_DOCUMENTO = Pattern.compile("[\\d.\\-/\\s]+");
 
     private final ClienteRepository clientes;
 
@@ -26,6 +31,9 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public PageResponse<ClienteResponse> listar(String busca, Boolean ativo, TipoPessoa tipo, String cidade, String uf,
                                                  int page, int size) {
+        if (busca != null && !busca.isBlank() && busca.trim().length() < MIN_BUSCA) {
+            throw BusinessException.badRequest("Informe ao menos " + MIN_BUSCA + " caracteres para buscar");
+        }
         var pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
                 Sort.by("nome").ascending().and(Sort.by("id")));
         return PageResponse.of(clientes.findAll(filtro(busca, ativo, tipo, cidade, uf), pageable), ClienteResponse::of);
@@ -141,18 +149,28 @@ public class ClienteService {
                 and.add(cb.equal(root.get("uf"), uf.trim().toUpperCase()));
             }
             if (busca != null && !busca.isBlank()) {
-                String termo = "%" + escapar(busca.trim()) + "%";
-                List<Predicate> or = new ArrayList<>();
-                or.add(cb.like(root.get("nome"), termo, '\\'));
-                or.add(cb.like(root.get("email"), termo, '\\'));
-                String digitos = Documento.somenteDigitos(busca);
-                if (!digitos.isEmpty()) {
-                    or.add(cb.like(root.get("documento"), "%" + digitos + "%"));
-                }
-                and.add(cb.or(or.toArray(new Predicate[0])));
+                and.add(buscaPorPadrao(root, cb, busca.trim()));
             }
             return cb.and(and.toArray(new Predicate[0]));
         };
+    }
+
+    /**
+     * Escolhe a coluna pelo formato do termo, sempre sem coringa inicial, para o banco usar seek no indice
+     * (CPF/CNPJ completo: igualdade; e-mail e nome: prefixo; trecho de documento: prefixo dos digitos).
+     */
+    private static Predicate buscaPorPadrao(Root<Cliente> root, CriteriaBuilder cb, String termo) {
+        String digitos = Documento.somenteDigitos(termo);
+        if (termo.contains("@")) {
+            return cb.like(root.get("email"), escapar(termo) + "%", '\\');
+        }
+        if (!digitos.isEmpty() && SOMENTE_DOCUMENTO.matcher(termo).matches()) {
+            if (digitos.length() == 11 || digitos.length() == 14) {
+                return cb.equal(root.get("documento"), digitos);
+            }
+            return cb.like(root.get("documento"), digitos + "%");
+        }
+        return cb.like(root.get("nome"), escapar(termo) + "%", '\\');
     }
 
     private static String escapar(String s) {
