@@ -32,7 +32,7 @@ CREATE TABLE dbo.movimentacao (
     descricao       NVARCHAR(2000)       NOT NULL,
     origem          VARCHAR(20)          NOT NULL CONSTRAINT df_movimentacao_origem DEFAULT 'ESCAVADOR',
     -- Hash do payload do evento: evita gravar a mesma movimentacao duas vezes se o Escavador reentregar o callback.
-    hash_dedup      CHAR(64)             NOT NULL,
+    hash_dedup      VARCHAR(64)          NOT NULL,
     criado_em       DATETIME2(3)         NOT NULL CONSTRAINT df_movimentacao_criado DEFAULT SYSUTCDATETIME()
 );
 CREATE UNIQUE INDEX ux_movimentacao_processo_hash ON dbo.movimentacao (processo_id, hash_dedup);
