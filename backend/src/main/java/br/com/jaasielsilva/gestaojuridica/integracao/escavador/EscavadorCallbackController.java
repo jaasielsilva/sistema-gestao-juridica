@@ -2,6 +2,7 @@ package br.com.jaasielsilva.gestaojuridica.integracao.escavador;
 
 import br.com.jaasielsilva.gestaojuridica.audit.AuditService;
 import br.com.jaasielsilva.gestaojuridica.audit.TipoEvento;
+import br.com.jaasielsilva.gestaojuridica.processo.NumeroCnj;
 import br.com.jaasielsilva.gestaojuridica.shared.Hashing;
 import br.com.jaasielsilva.gestaojuridica.tenant.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -98,6 +99,8 @@ public class EscavadorCallbackController {
             log.warn("Callback do Escavador sem numero_cnj identificavel — payload ignorado, ver log para ajustar o parser");
             return;
         }
+        // O Escavador manda o CNJ formatado (NNNNNNN-DD.AAAA.J.TR.OOOO); Processo.numero guarda so os digitos.
+        numeroCnj = NumeroCnj.somenteDigitos(numeroCnj);
 
         String evento = texto(root, "evento", "event", "tipo");
         String descricao = texto(root, "descricao", "mensagem", "resumo");

@@ -84,8 +84,10 @@ public class EscavadorService {
 
     @Transactional
     public void ativarMonitoramento(Long processoId, FrequenciaMonitoramento frequencia, AuthPrincipal quem) {
-        EscavadorConfiguracao cfg = configuracaoHabilitadaOuFalhar();
+        // Existencia/isolamento do processo primeiro: nunca revelar estado de configuracao antes de
+        // confirmar que o recurso pertence ao tenant do chamador.
         Processo processo = processos.findById(processoId).orElseThrow(() -> BusinessException.notFound("Processo nao encontrado"));
+        EscavadorConfiguracao cfg = configuracaoHabilitadaOuFalhar();
 
         long custoNovo = CUSTO_MENSAL_CENTAVOS.get(frequencia);
         long custoAtualDoProcesso = processo.getFrequenciaMonitoramento() == null
@@ -112,8 +114,8 @@ public class EscavadorService {
 
     @Transactional
     public void desativarMonitoramento(Long processoId, AuthPrincipal quem) {
-        EscavadorConfiguracao cfg = configuracaoHabilitadaOuFalhar();
         Processo processo = processos.findById(processoId).orElseThrow(() -> BusinessException.notFound("Processo nao encontrado"));
+        EscavadorConfiguracao cfg = configuracaoHabilitadaOuFalhar();
         if (processo.getMonitoramentoEscavadorId() == null) {
             return;
         }
