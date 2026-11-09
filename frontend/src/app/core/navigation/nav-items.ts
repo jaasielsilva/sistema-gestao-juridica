@@ -27,6 +27,12 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    label: 'Integrações',
+    icon: 'hub',
+    roles: ['ADMIN'],
+    children: [{ label: 'Escavador', icon: 'gavel', route: '/integracoes/escavador' }],
+  },
+  {
     label: 'Minha conta',
     icon: 'manage_accounts',
     bottom: true,

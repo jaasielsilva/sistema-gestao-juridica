@@ -24,6 +24,8 @@ app:
   mfa:
     issuer: Teste
     encryption-key: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
+  escavador:
+    encryption-key: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
   mail:
     from: teste@localhost
     log-body: false

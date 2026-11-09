@@ -75,6 +75,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/processos/processo-form').then((m) => m.ProcessoForm),
       },
       {
+        path: 'integracoes/escavador',
+        title: 'Integração Escavador',
+        loadComponent: () =>
+          import('./features/integracoes/escavador/escavador-configuracao').then((m) => m.EscavadorConfiguracaoPage),
+      },
+      {
         path: 'seguranca',
         title: 'Segurança',
         loadComponent: () => import('./features/account/security/security').then((m) => m.Security),

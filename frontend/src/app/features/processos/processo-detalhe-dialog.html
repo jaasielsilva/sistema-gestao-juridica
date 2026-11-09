@@ -77,6 +77,48 @@
       </div>
     </div>
 
+    <div class="section">
+      <h3 class="section__title"><mat-icon>notifications_active</mat-icon> Monitoramento Escavador</h3>
+      @if (data.frequenciaMonitoramento) {
+        <p class="field__text">
+          Monitoramento ativo ({{ data.frequenciaMonitoramento }}). Movimentações novas aparecem automaticamente abaixo.
+        </p>
+        <button mat-button type="button" [disabled]="monitoramentoBusy()" (click)="desativarMonitoramento()">
+          <mat-icon>notifications_off</mat-icon> Desativar monitoramento
+        </button>
+      } @else {
+        <div class="monitoramento-ativar">
+          <mat-form-field appearance="outline">
+            <mat-label>Frequência</mat-label>
+            <mat-select [value]="frequenciaSelecionada()" (valueChange)="frequenciaSelecionada.set($event)">
+              @for (f of frequencias; track f.value) {
+                <mat-option [value]="f.value">{{ f.label }} — {{ f.custoMensal }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="monitoramentoBusy()" (click)="ativarMonitoramento()">
+            <mat-icon>notifications_active</mat-icon> Ativar monitoramento
+          </button>
+        </div>
+      }
+      @if (monitoramentoErro()) {
+        <p class="form-error">{{ monitoramentoErro() }}</p>
+      }
+
+      @if (!movimentacoesCarregando() && movimentacoes().length > 0) {
+        <ul class="movimentacoes-lista">
+          @for (m of movimentacoes(); track m.id) {
+            <li>
+              <span class="movimentacoes-lista__data">{{ formatDataHora(m.dataMovimento) }}</span>
+              <span class="movimentacoes-lista__descricao">{{ m.descricao }}</span>
+            </li>
+          }
+        </ul>
+      } @else if (!movimentacoesCarregando()) {
+        <p class="field__text">Nenhuma movimentação registrada ainda.</p>
+      }
+    </div>
+
     @if (data.observacoes) {
       <div class="section">
         <h3 class="section__title"><mat-icon>notes</mat-icon> Observações</h3>

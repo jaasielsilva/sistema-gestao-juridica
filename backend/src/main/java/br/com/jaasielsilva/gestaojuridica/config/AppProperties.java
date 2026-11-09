@@ -20,7 +20,8 @@ public record AppProperties(
         @Valid Refresh refresh,
         @Valid Throttle throttle,
         @Valid Mfa mfa,
-        @Valid Mail mail) {
+        @Valid Mail mail,
+        @Valid Escavador escavador) {
 
     public record Jwt(
             @NotBlank @Size(min = 32, message = "app.jwt.secret precisa ter no minimo 32 caracteres") String secret,
@@ -57,5 +58,17 @@ public record AppProperties(
     }
 
     public record Mail(@NotBlank String from, boolean logBody) {
+    }
+
+    /** Chave que cifra o token Escavador e o segredo de callback de cada tenant (nunca o segredo do cliente em si). */
+    public record Escavador(@NotBlank String encryptionKey) {
+
+        public Escavador {
+            if (encryptionKey != null && encryptionKey.toLowerCase(Locale.ROOT).contains("troque")) {
+                throw new IllegalArgumentException(
+                        "app.escavador.encryption-key nao pode conter marcadores de segredo de exemplo. " +
+                        "Gere uma chave real com: openssl rand -base64 32");
+            }
+        }
     }
 }

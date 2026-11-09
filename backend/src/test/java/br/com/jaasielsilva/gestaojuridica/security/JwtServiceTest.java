@@ -16,7 +16,7 @@ class JwtServiceTest {
     private JwtService service(String secret, String issuer, long minutes) {
         AppProperties base = TestProps.app(true);
         return new JwtService(new AppProperties(base.baseUrl(), true, new AppProperties.Jwt(secret, issuer, minutes),
-                base.refresh(), base.throttle(), base.mfa(), base.mail()));
+                base.refresh(), base.throttle(), base.mfa(), base.mail(), base.escavador()));
     }
 
     private AuthPrincipal principal(Papel papel) {

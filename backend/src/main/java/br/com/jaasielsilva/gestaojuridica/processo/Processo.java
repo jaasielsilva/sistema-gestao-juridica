@@ -1,6 +1,7 @@
 package br.com.jaasielsilva.gestaojuridica.processo;
 
 import br.com.jaasielsilva.gestaojuridica.cliente.Cliente;
+import br.com.jaasielsilva.gestaojuridica.integracao.escavador.FrequenciaMonitoramento;
 import br.com.jaasielsilva.gestaojuridica.tenant.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -77,6 +78,13 @@ public class Processo extends TenantScopedEntity {
     @Column(name = "atualizado_em", nullable = false)
     private Instant atualizadoEm;
 
+    @Column(name = "monitoramento_escavador_id")
+    private Long monitoramentoEscavadorId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "frequencia_monitoramento", length = 10)
+    private FrequenciaMonitoramento frequenciaMonitoramento;
+
     protected Processo() {
     }
 
@@ -119,6 +127,16 @@ public class Processo extends TenantScopedEntity {
         this.proximoPrazo = proximoPrazo;
         this.proximoPrazoDescricao = proximoPrazoDescricao;
         this.observacoes = observacoes;
+    }
+
+    public void ativarMonitoramento(Long monitoramentoEscavadorId, FrequenciaMonitoramento frequencia) {
+        this.monitoramentoEscavadorId = monitoramentoEscavadorId;
+        this.frequenciaMonitoramento = frequencia;
+    }
+
+    public void desativarMonitoramento() {
+        this.monitoramentoEscavadorId = null;
+        this.frequenciaMonitoramento = null;
     }
 
     public Long getId() {
@@ -183,5 +201,13 @@ public class Processo extends TenantScopedEntity {
 
     public Instant getAtualizadoEm() {
         return atualizadoEm;
+    }
+
+    public Long getMonitoramentoEscavadorId() {
+        return monitoramentoEscavadorId;
+    }
+
+    public FrequenciaMonitoramento getFrequenciaMonitoramento() {
+        return frequenciaMonitoramento;
     }
 }

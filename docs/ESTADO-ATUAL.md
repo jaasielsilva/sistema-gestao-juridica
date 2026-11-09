@@ -342,6 +342,16 @@ Novo produto: `scripts/init-project.ps1` renomeia pacote/artefato; depois preenc
 
 ---
 
+## 16.1 Integração Escavador (monitoramento de processos)
+
+Implementada em 2026-11-09 (ADR 0007). Cada tenant cadastra a própria chave (PAT) e segredo de
+callback da conta Escavador em **Integrações → Escavador** (admin); nada é compartilhado entre
+tenants. Monitoramento é ativado por processo, com frequência mensal/semanal/diária, com cota em
+reais aplicada no servidor antes de ativar. O Escavador avisa via callback (push), sem polling
+nosso. Ver [manual de uso](manual-uso-escavador.md) e [ADR 0007](adr/0007-integracao-escavador.md)
+para detalhes de preço, segurança e fluxo completo. Não testado em produção com callback real
+ainda (pendente: confirmar o payload real do primeiro evento e ajustar o parser se necessário).
+
 ## 16. Estrutura do repositório
 
 ```

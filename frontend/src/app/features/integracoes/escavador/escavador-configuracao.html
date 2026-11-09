@@ -1,0 +1,75 @@
+<div class="page">
+  <h1>Integração Escavador</h1>
+  <p class="page__subtitle">
+    Cadastre a chave (Personal Access Token) e o segredo de callback da conta Escavador deste escritório.
+    Cada escritório usa a própria conta e o próprio crédito — nada é compartilhado entre clientes da plataforma.
+  </p>
+
+  @if (carregando()) {
+    <mat-spinner diameter="32" />
+  } @else {
+    <mat-card>
+      <mat-card-content>
+        @if (config()?.configurado) {
+          <div class="status status--ok">
+            <mat-icon>check_circle</mat-icon>
+            <span>
+              Integração configurada ({{ config()?.habilitado ? 'habilitada' : 'desabilitada' }}).
+              Gasto mensal estimado com monitoramento: {{ formatarReais(config()!.gastoMensalEstimadoCentavos) }}
+              de {{ formatarReais(config()!.saldoLimiteCentavos) }}.
+            </span>
+          </div>
+          @if (config()?.urlCallback) {
+            <div class="callback-url">
+              <span>URL de callback (cole no painel do Escavador, em Callbacks):</span>
+              <code>{{ config()!.urlCallback }}</code>
+              <button mat-icon-button type="button" (click)="copiarUrlCallback()" aria-label="Copiar URL">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          }
+        } @else {
+          <div class="status status--pendente">
+            <mat-icon>info</mat-icon>
+            <span>Integração ainda não configurada para este escritório.</span>
+          </div>
+        }
+
+        <form class="form-stack" [formGroup]="form" (ngSubmit)="salvar()">
+          <mat-form-field appearance="outline">
+            <mat-label>Token (Personal Access Token)</mat-label>
+            <input matInput type="password" formControlName="token" autocomplete="off" />
+            <mat-hint>Gerado no painel da API do Escavador. Nunca é exibido de volta depois de salvo.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Segredo de callback</mat-label>
+            <input matInput type="password" formControlName="callbackSecret" autocomplete="off" />
+            <mat-hint>Também gerado no painel do Escavador, na seção de Callbacks.</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Limite mensal de gasto (R$)</mat-label>
+            <input matInput type="number" step="0.01" min="0" formControlName="saldoLimiteReais" />
+            <mat-hint>Monitoramento é bloqueado se o gasto mensal estimado passar desse valor.</mat-hint>
+          </mat-form-field>
+
+          @if (erro()) {
+            <p class="form-error">{{ erro() }}</p>
+          }
+          @if (sucesso()) {
+            <p class="form-success">{{ sucesso() }}</p>
+          }
+
+          <button mat-flat-button type="submit" class="form-submit" [disabled]="salvando()">
+            @if (salvando()) {
+              <mat-progress-spinner diameter="18" mode="indeterminate" />
+            } @else {
+              Salvar
+            }
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

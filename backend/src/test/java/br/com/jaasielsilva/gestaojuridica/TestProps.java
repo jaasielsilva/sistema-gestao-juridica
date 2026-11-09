@@ -19,6 +19,7 @@ public final class TestProps {
                 new AppProperties.Refresh(7, false, 0),
                 new AppProperties.Throttle(5, 30, 10, 15, 15),
                 new AppProperties.Mfa("Teste", MFA_KEY),
-                new AppProperties.Mail("teste@localhost", false));
+                new AppProperties.Mail("teste@localhost", false),
+                new AppProperties.Escavador(MFA_KEY));
     }
 }

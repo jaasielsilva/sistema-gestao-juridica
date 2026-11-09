@@ -1,6 +1,7 @@
 package br.com.jaasielsilva.gestaojuridica.processo;
 
 import br.com.jaasielsilva.gestaojuridica.cliente.TipoPessoa;
+import br.com.jaasielsilva.gestaojuridica.integracao.escavador.FrequenciaMonitoramento;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,13 +25,14 @@ public record ProcessoResponse(
         String proximoPrazoDescricao,
         String observacoes,
         Instant criadoEm,
-        Instant atualizadoEm) {
+        Instant atualizadoEm,
+        FrequenciaMonitoramento frequenciaMonitoramento) {
 
     static ProcessoResponse of(Processo p) {
         var c = p.getCliente();
         return new ProcessoResponse(p.getId(), p.getNumero(), c.getId(), c.getNome(), c.getDocumento(), c.getTipo(),
                 p.getTipo(), p.getAreaJuridica(), p.getTribunal(), p.getComarca(), p.getVara(), p.getAdvogadoNome(),
                 p.getAdvogadoOab(), p.getSituacao(), p.getProximoPrazo(), p.getProximoPrazoDescricao(),
-                p.getObservacoes(), p.getCriadoEm(), p.getAtualizadoEm());
+                p.getObservacoes(), p.getCriadoEm(), p.getAtualizadoEm(), p.getFrequenciaMonitoramento());
     }
 }

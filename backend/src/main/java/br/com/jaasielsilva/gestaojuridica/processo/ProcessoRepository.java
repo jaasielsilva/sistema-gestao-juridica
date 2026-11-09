@@ -15,4 +15,9 @@ public interface ProcessoRepository extends TenantScopedRepository<Processo>, Jp
     /** Contagem por situacao numa unica consulta (o tenant e filtrado pelo @TenantId). Linhas: {situacao, quantidade}. */
     @Query("select p.situacao, count(p) from Processo p group by p.situacao")
     List<Object[]> contarPorSituacao();
+
+    /** Quantos processos estao monitorados em cada frequencia — base do calculo de gasto mensal com o Escavador. */
+    @Query("select p.frequenciaMonitoramento, count(p) from Processo p " +
+           "where p.frequenciaMonitoramento is not null group by p.frequenciaMonitoramento")
+    List<Object[]> contarPorFrequenciaMonitoramento();
 }

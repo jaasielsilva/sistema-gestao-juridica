@@ -4,6 +4,36 @@
   padding: 8px 12px;
 }
 
+.monitoramento-ativar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.movimentacoes-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    display: flex;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 4px;
+    background: var(--mat-sys-surface-variant);
+  }
+
+  &__data {
+    color: var(--mat-sys-on-surface-variant);
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+}
+
 .dialog__header {
   display: flex;
   align-items: center;

@@ -82,6 +82,9 @@ app:
   mail:
     from: ${MAIL_FROM:no-reply@localhost}
     log-body: ${MAIL_LOG_BODY:false}
+  escavador:
+    # Chave AES-256 em base64 (32 bytes), separada da do MFA. Gere com: openssl rand -base64 32
+    encryption-key: ${ESCAVADOR_ENCRYPTION_KEY}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
 

@@ -45,6 +45,10 @@ public class SecurityConfig {
             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
     };
 
+    /** Callback do Escavador: quem chama e o servidor deles, nunca um usuario logado (ver ADR 0007). A
+     * autenticacao real e o segredo de callback por tenant, validado dentro do controller — nao um JWT. */
+    private static final String ESCAVADOR_CALLBACK_PATH = "/api/v1/integracoes/escavador/callback/**";
+
     @Value("${springdoc.swagger-ui.enabled:false}")
     private boolean swaggerEnabled;
 
@@ -64,6 +68,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> {
                     a.requestMatchers(HttpMethod.POST, PUBLIC_POST).permitAll()
                      .requestMatchers(HttpMethod.GET, "/api/v1/auth/config").permitAll()
+                     .requestMatchers(HttpMethod.POST, ESCAVADOR_CALLBACK_PATH).permitAll()
                      .requestMatchers("/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness").permitAll();
                     // Swagger: so acessivel quando explicitamente habilitado (nunca em producao) — SEC-001.
                     if (swaggerEnabled) {

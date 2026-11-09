@@ -12,7 +12,7 @@ class SecretCipherTest {
     private SecretCipher cipher(String key) {
         AppProperties b = TestProps.app(true);
         return new SecretCipher(new AppProperties(b.baseUrl(), true, b.jwt(), b.refresh(), b.throttle(),
-                new AppProperties.Mfa("T", key), b.mail()));
+                new AppProperties.Mfa("T", key), b.mail(), b.escavador()));
     }
 
     @Test

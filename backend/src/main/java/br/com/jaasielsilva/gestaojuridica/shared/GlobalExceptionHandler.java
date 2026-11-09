@@ -47,6 +47,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "Acesso negado", List.of());
     }
 
+    @ExceptionHandler(br.com.jaasielsilva.gestaojuridica.integracao.escavador.EscavadorApiException.class)
+    public ResponseEntity<ApiError> escavador(br.com.jaasielsilva.gestaojuridica.integracao.escavador.EscavadorApiException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatus().value() == 402 ? 409 : ex.getStatus().value());
+        return build(status, ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler(br.com.jaasielsilva.gestaojuridica.tenant.TenantViolationException.class)
     public ResponseEntity<ApiError> crossTenant(br.com.jaasielsilva.gestaojuridica.tenant.TenantViolationException ex) {
         // Rede de seguranca: loga como erro (sinal de bug ou ataque) e responde como se o recurso nao existisse.

@@ -1,0 +1,44 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.page__subtitle {
+  color: var(--mat-sys-on-surface-variant);
+  margin-bottom: 24px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+
+  &--ok {
+    background: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+  }
+
+  &--pendente {
+    background: var(--mat-sys-surface-variant);
+    color: var(--mat-sys-on-surface-variant);
+  }
+}
+
+.callback-url {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+
+  code {
+    background: var(--mat-sys-surface-variant);
+    padding: 8px;
+    border-radius: 4px;
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+}

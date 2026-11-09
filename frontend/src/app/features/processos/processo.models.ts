@@ -58,6 +58,7 @@ export interface Processo {
   observacoes: string | null;
   criadoEm: string;
   atualizadoEm: string;
+  frequenciaMonitoramento: 'MENSAL' | 'SEMANAL' | 'DIARIA' | null;
 }
 
 export interface ProcessoRequest {
