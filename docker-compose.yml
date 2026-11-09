@@ -54,6 +54,7 @@ services:
       DB_PASSWORD: ${APP_DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (minimo 32 caracteres)}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?defina MFA_ENCRYPTION_KEY no .env (openssl rand -base64 32)}
+      ESCAVADOR_ENCRYPTION_KEY: ${ESCAVADOR_ENCRYPTION_KEY:?defina ESCAVADOR_ENCRYPTION_KEY no .env (openssl rand -base64 32)}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
       REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}

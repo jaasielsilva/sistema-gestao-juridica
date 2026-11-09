@@ -50,6 +50,7 @@ services:
       DB_PASSWORD: ${APP_DB_PASSWORD:?defina APP_DB_PASSWORD no .env}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?defina MFA_ENCRYPTION_KEY no .env}
+      ESCAVADOR_ENCRYPTION_KEY: ${ESCAVADOR_ENCRYPTION_KEY:?defina ESCAVADOR_ENCRYPTION_KEY no .env}
       APP_BASE_URL: https://erpcorporativo.cloud
       REGISTRATION_ENABLED: "false"
       COOKIE_SECURE: "true"
