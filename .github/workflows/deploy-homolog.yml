@@ -1,0 +1,76 @@
+name: Deploy Homologacao
+
+# Homologacao: roda sozinho quando o CI passa na dev. E o gate antes da main: testa aqui, depois
+# abre PR de dev para main (producao so publica o que ja passou por homolog).
+# Tambem pode ser disparado a mao (Actions > Deploy Homologacao > Run workflow).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit da dev para publicar (vazio = ultimo commit da dev)"
+        required: false
+
+permissions:
+  contents: read
+
+# Um deploy de homolog por vez; independente do lock de producao (ambientes isolados).
+concurrency:
+  group: deploy-homologacao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy na VPS (homolog)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment:
+      name: homologacao
+      url: https://homolog.erpcorporativo.cloud
+    steps:
+      - name: Definir commit
+        id: alvo
+        env:
+          SHA_WORKFLOW_RUN: ${{ github.event.workflow_run.head_sha }}
+          SHA_INPUT: ${{ inputs.sha }}
+          SHA_ATUAL: ${{ github.sha }}
+        run: |
+          sha="${SHA_WORKFLOW_RUN:-${SHA_INPUT:-$SHA_ATUAL}}"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "SHA invalido: $sha"; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Publicando $sha em homologacao" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preparar SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_HOMOLOG }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      # A chave so executa scripts/deploy-vps.sh (com APP_DIR/COMPOSE_PROJECT/FRONTEND_PORT de homolog
+      # fixados no authorized_keys da VPS); o SHA vai como argumento.
+      - name: Deploy via SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SHA: ${{ steps.alvo.outputs.sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=30 -o ServerAliveInterval=30 "$SSH_USER@$SSH_HOST" "$SHA"
+
+      - name: Verificar no ar
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://homolog.erpcorporativo.cloud/api/v1/auth/config || true)
+            [ "$code" = "200" ] && { echo "Homologacao respondeu 200."; exit 0; }
+            sleep 6
+          done
+          echo "Homologacao nao respondeu 200 (ultimo codigo: $code)"; exit 1

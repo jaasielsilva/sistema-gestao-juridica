@@ -34,10 +34,10 @@ cd frontend && npm start                            # dev em :4200 com proxy /ap
 cd frontend && npx ng test --watch=false && npx ng build
 ```
 
-## Deploy (produção)
-- Fluxo: PR → CI (`ci.yml`) → merge na `main` (protegida, só por PR) → `deploy.yml` publica na VPS sozinho (ADR 0005).
-- Na VPS (`/opt/gestao-juridica`, `docker-compose.vps.yml`) roda `scripts/deploy-vps.sh <sha>`: backup do banco, scripts SQL, build, verificação e rollback do código.
-- Segredos de produção ficam em `.env`/`.env.smtp` na VPS e nos secrets do GitHub (environment `producao`); nunca no repositório.
+## Deploy (produção e homologação)
+- Fluxo: PR → CI (`ci.yml`) → merge na `dev` → CI de novo → `deploy-homolog.yml` publica sozinho em `homolog.erpcorporativo.cloud` → valida lá → PR `dev` → `main` (protegida, só por PR) → `deploy.yml` publica em produção (ADR 0005).
+- Mesmo script (`scripts/deploy-vps.sh <sha>`) nos dois ambientes: backup do banco, scripts SQL, build, verificação e rollback do código. A branch e o diretório vêm de variáveis fixadas na chave SSH de cada ambiente (produção: `main`/`/opt/gestao-juridica`; homologação: `dev`/`/opt/gestao-juridica-homolog`).
+- Segredos ficam em `.env`/`.env.smtp` na VPS (um arquivo por ambiente) e nos secrets do GitHub (environments `producao` e `homologacao`); nunca no repositório.
 
 ## Regras do projeto
 1. **Não use Flyway/Liquibase.** O schema muda por script SQL novo em `database/scripts/`, revisado em PR.

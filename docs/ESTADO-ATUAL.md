@@ -103,6 +103,9 @@ Eventos registrados (tabela `evento_auditoria`, só INSERT pela aplicação): ca
 ### 4.6 Operação
 - Limpeza diária (03:30) de sessões/tokens/tentativas expirados (`HousekeepingJob`); a auditoria **não** é apagada.
 - `GET /actuator/health` para monitoramento.
+- Esteira de deploy em duas etapas (2026-11-09): push/merge na `dev` sobe sozinho em `homolog.erpcorporativo.cloud`
+  (`deploy-homolog.yml`); depois de validar lá, PR `dev` → `main` publica em produção (`deploy.yml`). Mesmo script
+  (`scripts/deploy-vps.sh`) nos dois ambientes, cada um com diretório/porta/segredos próprios na VPS.
 
 ---
 

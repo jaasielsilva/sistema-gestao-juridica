@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
   # Roda toda segunda mesmo sem commits: novas vulnerabilidades (CVEs) aparecem a qualquer momento.
   schedule:

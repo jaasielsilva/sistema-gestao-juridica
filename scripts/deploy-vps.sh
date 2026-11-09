@@ -1,30 +1,41 @@
 #!/usr/bin/env bash
-# Deploy do Sistema de Gestão Jurídica na VPS. Chamado pelo GitHub Actions (.github/workflows/deploy.yml) por SSH,
-# com uma chave restrita (`command=` no authorized_keys): o SHA do commit chega em SSH_ORIGINAL_COMMAND.
-# Uso manual na VPS:  bash scripts/deploy-vps.sh <sha-de-40-caracteres-da-main>
+# Deploy do Sistema de Gestão Jurídica na VPS. Chamado pelo GitHub Actions (deploy.yml para producao,
+# deploy-homolog.yml para homologacao) por SSH, com uma chave restrita por ambiente (`command=` no
+# authorized_keys fixa APP_DIR/COMPOSE_PROJECT/FRONTEND_PORT); o SHA do commit chega em SSH_ORIGINAL_COMMAND.
+# Producao publica a partir da main; homologacao a partir da dev (ver BRANCH acima).
+# Uso manual na VPS:  APP_DIR=... COMPOSE_PROJECT=... bash scripts/deploy-vps.sh <sha-de-40-caracteres>
 #
 # Fluxo: trava de concorrência -> sincroniza o código -> backup do banco -> scripts SQL -> build e subida -> verificação.
 # Se a verificação falhar, volta o código anterior (os scripts SQL NÃO são desfeitos: veja o "Rollback:" de cada um).
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/gestao-juridica}"
+COMPOSE_PROJECT="${COMPOSE_PROJECT:-gestaojuridica}"
+FRONTEND_PORT="${FRONTEND_PORT:-3010}"
+# Homolog roda a partir da dev (gate antes da main); producao continua na main.
+# Sem BRANCH explicito, infere pelo APP_DIR para nao depender de reconfigurar a chave SSH restrita na VPS.
+case "$APP_DIR" in
+  *-homolog) BRANCH="${BRANCH:-dev}" ;;
+  *) BRANCH="${BRANCH:-main}" ;;
+esac
 SHA="${1:-${SSH_ORIGINAL_COMMAND:-}}"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "SHA invalido: informe os 40 caracteres do commit." >&2; exit 2; }
 
 cd "$APP_DIR"
-COMPOSE=(docker compose -f docker-compose.vps.yml -p gestaojuridica)
+COMPOSE=(docker compose -f docker-compose.vps.yml -p "$COMPOSE_PROJECT")
+DB_CONTAINER="${COMPOSE_PROJECT}-db-1"
 
-exec 9>/var/lock/gestaojuridica-deploy.lock
+exec 9>"/var/lock/${COMPOSE_PROJECT}-deploy.lock"
 flock -n 9 || { echo "Ja existe um deploy em andamento." >&2; exit 3; }
 
 # Etapa 1: atualiza o código e reexecuta a versão NOVA deste script (assim o próprio deploy também é versionado).
 if [ -z "${DEPLOY_REEXEC:-}" ]; then
-  git fetch --prune origin main
+  git fetch --prune origin "$BRANCH"
   git cat-file -e "$SHA^{commit}" 2>/dev/null || { echo "Commit $SHA nao encontrado em origin." >&2; exit 2; }
-  git merge-base --is-ancestor "$SHA" origin/main || { echo "Commit $SHA nao pertence a main." >&2; exit 2; }
+  git merge-base --is-ancestor "$SHA" "origin/$BRANCH" || { echo "Commit $SHA nao pertence a $BRANCH." >&2; exit 2; }
   PREV_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
   git reset --hard "$SHA"
-  DEPLOY_REEXEC=1 PREV_SHA="$PREV_SHA" exec bash scripts/deploy-vps.sh "$SHA"
+  DEPLOY_REEXEC=1 PREV_SHA="$PREV_SHA" BRANCH="$BRANCH" exec bash scripts/deploy-vps.sh "$SHA"
 fi
 
 PREV_SHA="${PREV_SHA:-}"
@@ -34,23 +45,23 @@ set -a; . ./.env; set +a
 DB_NAME="${DB_NAME:-appdb}"
 
 sqlcmd_db() {
-  docker exec -i -e P="$DB_PASSWORD" gestaojuridica-db-1 bash -c \
+  docker exec -i -e P="$DB_PASSWORD" "$DB_CONTAINER" bash -c \
     "/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P \"\$P\" $*"
 }
 
 # Backup antes de qualquer script SQL novo (fica no volume do banco; mantém os 5 mais recentes).
 # Sem WITH COMPRESSION: a edição Express do SQL Server não suporta. A saída do sqlcmd fica visível para diagnosticar falhas.
-if docker inspect -f '{{.State.Running}}' gestaojuridica-db-1 2>/dev/null | grep -q true; then
+if docker inspect -f '{{.State.Running}}' "$DB_CONTAINER" 2>/dev/null | grep -q true; then
   echo "== Backup do banco"
-  docker exec gestaojuridica-db-1 mkdir -p /var/opt/mssql/backups
+  docker exec "$DB_CONTAINER" mkdir -p /var/opt/mssql/backups
   sqlcmd_db "-Q \"BACKUP DATABASE [$DB_NAME] TO DISK=N'/var/opt/mssql/backups/pre-deploy-${SHA:0:12}.bak' WITH INIT\""
-  docker exec gestaojuridica-db-1 bash -c 'ls -1t /var/opt/mssql/backups/pre-deploy-*.bak | tail -n +6 | xargs -r rm -f'
+  docker exec "$DB_CONTAINER" bash -c 'ls -1t /var/opt/mssql/backups/pre-deploy-*.bak | tail -n +6 | xargs -r rm -f'
 fi
 
 verificar() {
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null http://127.0.0.1:3010/ && \
-       curl -fsS http://127.0.0.1:3010/api/v1/auth/config | grep -q registrationEnabled; then
+    if curl -fsS -o /dev/null "http://127.0.0.1:${FRONTEND_PORT}/" && \
+       curl -fsS "http://127.0.0.1:${FRONTEND_PORT}/api/v1/auth/config" | grep -q registrationEnabled; then
       return 0
     fi
     sleep 3
