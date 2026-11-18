@@ -25,10 +25,10 @@ public class EscavadorConfiguracao extends TenantScopedEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "token_cifrado", nullable = false, length = 500)
+    @Column(name = "token_cifrado", nullable = false, length = 2000)
     private String tokenCifrado;
 
-    @Column(name = "callback_secret_cifrado", nullable = false, length = 500)
+    @Column(name = "callback_secret_cifrado", nullable = false, length = 2000)
     private String callbackSecretCifrado;
 
     /** Identificador opaco usado na URL publica de callback — nunca o tenant_id sequencial. */

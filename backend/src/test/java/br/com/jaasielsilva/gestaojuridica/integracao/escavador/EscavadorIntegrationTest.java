@@ -136,6 +136,17 @@ class EscavadorIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void salvaTokenLongoDeVerdade() throws Exception {
+        // Regressao: PAT real do Escavador e longo (cifrado passava de 500 chars e estourava a coluna).
+        String tokenLongo = "x".repeat(1200);
+        mvc.perform(put("/api/v1/integracoes/escavador/configuracao").header("Authorization", "Bearer " + adminA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "token", tokenLongo, "callbackSecret", "segredo-de-teste", "saldoLimiteCentavos", 1000))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void configuracaoNuncaDevolveOTokenOuOSegredo() throws Exception {
         configurar(adminA, 1000);
 
