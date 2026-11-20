@@ -85,6 +85,15 @@ public class Processo extends TenantScopedEntity {
     @Column(name = "frequencia_monitoramento", length = 10)
     private FrequenciaMonitoramento frequenciaMonitoramento;
 
+    /** Etapa do fluxo do escritorio (radar de processos). Muda so por mudarEtapa. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 25)
+    private EtapaProcesso etapa = EtapaProcesso.ANALISE;
+
+    /** Quando o processo entrou na etapa atual: base dos "dias na etapa" do radar. */
+    @Column(name = "etapa_atualizada_em", nullable = false)
+    private Instant etapaAtualizadaEm;
+
     protected Processo() {
     }
 
@@ -103,6 +112,9 @@ public class Processo extends TenantScopedEntity {
     void aoCriar() {
         this.criadoEm = Instant.now();
         this.atualizadoEm = this.criadoEm;
+        if (this.etapaAtualizadaEm == null) {
+            this.etapaAtualizadaEm = this.criadoEm;
+        }
     }
 
     @PreUpdate
@@ -127,6 +139,22 @@ public class Processo extends TenantScopedEntity {
         this.proximoPrazo = proximoPrazo;
         this.proximoPrazoDescricao = proximoPrazoDescricao;
         this.observacoes = observacoes;
+    }
+
+    /** Troca a etapa. Repetir a etapa atual nao reinicia a contagem de dias. Devolve true se houve mudanca. */
+    public boolean mudarEtapa(EtapaProcesso nova, Instant quando) {
+        if (nova == this.etapa) {
+            return false;
+        }
+        this.etapa = nova;
+        this.etapaAtualizadaEm = quando;
+        return true;
+    }
+
+    /** Mantem proximo_prazo igual ao prazo aberto mais proximo (ou limpo, se nao houver). Chamado pelo modulo de prazos. */
+    public void sincronizarProximoPrazo(LocalDate data, String descricao) {
+        this.proximoPrazo = data;
+        this.proximoPrazoDescricao = descricao;
     }
 
     public void ativarMonitoramento(Long monitoramentoEscavadorId, FrequenciaMonitoramento frequencia) {
@@ -201,6 +229,14 @@ public class Processo extends TenantScopedEntity {
 
     public Instant getAtualizadoEm() {
         return atualizadoEm;
+    }
+
+    public EtapaProcesso getEtapa() {
+        return etapa;
+    }
+
+    public Instant getEtapaAtualizadaEm() {
+        return etapaAtualizadaEm;
     }
 
     public Long getMonitoramentoEscavadorId() {

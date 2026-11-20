@@ -10,11 +10,13 @@ services:
       MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
     # Só loopback: acesso administrativo por túnel SSH (nunca publicar em 0.0.0.0).
     ports:
-      - "127.0.0.1:1433:1433"
+      - "127.0.0.1:${DB_HOST_PORT:-1433}:1433"
     volumes:
       - dbdata:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      # 127.0.0.1 e nao "localhost": em alguns containers "localhost" resolve primeiro para ::1 (IPv6) e o SQL Server
+      # nao escuta em IPv6, entao a checagem estoura o tempo e o banco fica "unhealthy" (foi o que travou a homologacao).
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S 127.0.0.1 -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -71,7 +73,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "127.0.0.1:3010:80"
+      - "127.0.0.1:${FRONTEND_PORT:-3010}:80"
     volumes:
       - ./frontend/nginx/locations.conf:/etc/nginx/snippets/locations.conf:ro
       - ./frontend/nginx/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro

@@ -1,0 +1,109 @@
+@use '../../shared/page-chrome';
+
+// Barra de filtros solta (acima do quadro), no mesmo estilo da barra dos paineis de lista.
+.filters-bar--solta {
+  margin-bottom: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+  gap: 16px;
+}
+
+// O quadro ocupa toda a altura que sobra; as 4 colunas dividem a largura e cada uma rola por dentro.
+.quadro {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(240px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.coluna {
+  background: var(--mat-sys-surface-container-low, var(--mat-sys-surface));
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.coluna__topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 0 14px;
+
+  h2 { margin: 0; font: var(--mat-sys-title-small); flex: 1; }
+}
+
+.contagem {
+  background: var(--mat-sys-surface-container-high);
+  border-radius: 999px;
+  padding: 0 8px;
+  font: var(--mat-sys-label-medium);
+}
+
+.coluna__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.cartao {
+  background: var(--mat-sys-surface);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-left-width: 4px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: grab;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &:focus-visible { outline: 2px solid var(--mat-sys-primary); }
+  &--URGENTE { border-left-color: var(--mat-sys-error); }
+  &--ALTA { border-left-color: var(--mat-sys-tertiary); }
+  &--MEDIA { border-left-color: var(--mat-sys-primary); }
+  &--BAIXA { border-left-color: var(--mat-sys-outline); }
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+.cartao__titulo { font: var(--mat-sys-title-small); word-break: break-word; }
+.cartao__meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.prioridade {
+  padding: 0 8px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-small);
+  background: var(--mat-sys-surface-container-high);
+
+  &--URGENTE { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+  &--ALTA { background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container); }
+}
+
+.prazo,
+.cartao__processo,
+.cartao__responsavel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.prazo--atrasado { color: var(--mat-sys-error); font-weight: 600; }
+.vazio { text-align: center; color: var(--mat-sys-on-surface-variant); margin: 12px 0; }
+
+// Arrastar e soltar (CDK)
+.cdk-drag-preview { box-shadow: var(--mat-sys-level3); border-radius: 10px; }
+.cdk-drag-placeholder { opacity: 0.35; }
+.cdk-drag-animating { transition: transform 200ms cubic-bezier(0, 0, 0.2, 1); }
+.cdk-drop-list-dragging .cartao:not(.cdk-drag-placeholder) { transition: transform 200ms cubic-bezier(0, 0, 0.2, 1); }

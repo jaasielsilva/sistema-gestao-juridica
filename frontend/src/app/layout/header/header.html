@@ -16,10 +16,13 @@
   </button>
 
   <div class="header__notif-wrap">
-    <button mat-icon-button type="button" matTooltip="Notificações (3 novas)" aria-label="Notificações">
+    <button mat-icon-button type="button" [matTooltip]="alertasTexto()" [attr.aria-label]="'Prazos: ' + alertasTexto()"
+            (click)="abrirPrazos()">
       <mat-icon>notifications</mat-icon>
     </button>
-    <span class="header__notif-badge">3</span>
+    @if (alertas() > 0) {
+      <span class="header__notif-badge">{{ alertas() > 99 ? '99+' : alertas() }}</span>
+    }
   </div>
 
   @if (auth.user(); as user) {

@@ -26,13 +26,17 @@ public record ProcessoResponse(
         String observacoes,
         Instant criadoEm,
         Instant atualizadoEm,
-        FrequenciaMonitoramento frequenciaMonitoramento) {
+        FrequenciaMonitoramento frequenciaMonitoramento,
+        EtapaProcesso etapa,
+        String etapaRotulo,
+        Instant etapaAtualizadaEm) {
 
     static ProcessoResponse of(Processo p) {
         var c = p.getCliente();
         return new ProcessoResponse(p.getId(), p.getNumero(), c.getId(), c.getNome(), c.getDocumento(), c.getTipo(),
                 p.getTipo(), p.getAreaJuridica(), p.getTribunal(), p.getComarca(), p.getVara(), p.getAdvogadoNome(),
                 p.getAdvogadoOab(), p.getSituacao(), p.getProximoPrazo(), p.getProximoPrazoDescricao(),
-                p.getObservacoes(), p.getCriadoEm(), p.getAtualizadoEm(), p.getFrequenciaMonitoramento());
+                p.getObservacoes(), p.getCriadoEm(), p.getAtualizadoEm(), p.getFrequenciaMonitoramento(), p.getEtapa(),
+                p.getEtapa().getRotulo(), p.getEtapaAtualizadaEm());
     }
 }

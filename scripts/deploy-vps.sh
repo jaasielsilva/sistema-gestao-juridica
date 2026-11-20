@@ -11,13 +11,24 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/gestao-juridica}"
 COMPOSE_PROJECT="${COMPOSE_PROJECT:-gestaojuridica}"
-FRONTEND_PORT="${FRONTEND_PORT:-3010}"
 # Homolog roda a partir da dev (gate antes da main); producao continua na main.
-# Sem BRANCH explicito, infere pelo APP_DIR para nao depender de reconfigurar a chave SSH restrita na VPS.
+# Sem BRANCH/portas explicitos, infere pelo APP_DIR para nao depender de reconfigurar a chave SSH restrita na VPS.
+# Portas publicadas no host (so loopback): producao 3010/1433; homologacao, na MESMA VPS, 3011/1434 (o nginx do host
+# aponta homolog.erpcorporativo.cloud para 127.0.0.1:3011). O docker-compose.vps.yml le estas variaveis; antes elas
+# eram fixas no compose e a homologacao so funcionava com uma edicao manual que o git reset --hard apagava a cada deploy.
 case "$APP_DIR" in
-  *-homolog) BRANCH="${BRANCH:-dev}" ;;
-  *) BRANCH="${BRANCH:-main}" ;;
+  *-homolog)
+    BRANCH="${BRANCH:-dev}"
+    FRONTEND_PORT="${FRONTEND_PORT:-3011}"
+    DB_HOST_PORT="${DB_HOST_PORT:-1434}"
+    ;;
+  *)
+    BRANCH="${BRANCH:-main}"
+    FRONTEND_PORT="${FRONTEND_PORT:-3010}"
+    DB_HOST_PORT="${DB_HOST_PORT:-1433}"
+    ;;
 esac
+export FRONTEND_PORT DB_HOST_PORT
 SHA="${1:-${SSH_ORIGINAL_COMMAND:-}}"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "SHA invalido: informe os 40 caracteres do commit." >&2; exit 2; }
 
@@ -46,7 +57,7 @@ DB_NAME="${DB_NAME:-appdb}"
 
 sqlcmd_db() {
   docker exec -i -e P="$DB_PASSWORD" "$DB_CONTAINER" bash -c \
-    "/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P \"\$P\" $*"
+    "/opt/mssql-tools18/bin/sqlcmd -C -b -S 127.0.0.1 -U sa -P \"\$P\" $*"
 }
 
 # Backup antes de qualquer script SQL novo (fica no volume do banco; mantém os 5 mais recentes).

@@ -75,6 +75,21 @@ export const routes: Routes = [
         loadComponent: () => import('./features/processos/processo-form').then((m) => m.ProcessoForm),
       },
       {
+        path: 'prazos',
+        title: 'Prazos',
+        loadComponent: () => import('./features/prazos/prazos-list').then((m) => m.PrazosList),
+      },
+      {
+        path: 'radar',
+        title: 'Radar de processos',
+        loadComponent: () => import('./features/radar/radar-page').then((m) => m.RadarPage),
+      },
+      {
+        path: 'tarefas',
+        title: 'Tarefas',
+        loadComponent: () => import('./features/tarefas/tarefas-board').then((m) => m.TarefasBoard),
+      },
+      {
         path: 'integracoes/escavador',
         title: 'Integração Escavador',
         loadComponent: () =>

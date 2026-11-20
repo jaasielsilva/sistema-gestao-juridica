@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "Corpo da requisicao invalido", List.of());
     }
 
+    /** Parametro de URL com valor que nao existe (ex.: ?faixa=XYZ para um enum) ou de tipo errado: erro do cliente, nao 500. */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> typeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Parametro invalido: " + ex.getName(), List.of());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> denied(AccessDeniedException ex) {
         return build(HttpStatus.FORBIDDEN, "Acesso negado", List.of());

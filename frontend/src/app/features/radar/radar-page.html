@@ -1,0 +1,171 @@
+<nav class="breadcrumb" aria-label="Navegação estrutural">
+  <a routerLink="/inicio" class="breadcrumb__link">
+    <mat-icon class="breadcrumb__icon">home</mat-icon>
+    <span>Início</span>
+  </a>
+  <span class="breadcrumb__separator">›</span>
+  <span class="breadcrumb__current">Radar</span>
+</nav>
+
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>radar</mat-icon></span>
+  <div class="page-header__text">
+    <h1>Radar de processos</h1>
+    <p>Panorama geral: onde cada processo ativo está e há quanto tempo está parado na etapa.</p>
+  </div>
+</header>
+
+<ul class="stats" aria-label="Resumo do radar">
+  @for (c of cartoes(); track c.rotulo) {
+    <li>
+      <button
+        type="button"
+        class="stat stat--clicavel"
+        [class.stat--ativo]="faixa() === c.faixa"
+        [attr.aria-pressed]="faixa() === c.faixa"
+        (click)="filtrarFaixa(c.faixa)"
+      >
+        <span class="stat__icon stat__icon--{{ c.cor }}" aria-hidden="true">
+          <mat-icon>{{ c.icone }}</mat-icon>
+        </span>
+        <span class="stat__text">
+          <small class="stat__label">{{ c.rotulo }}</small>
+          <strong class="stat__value">{{ c.valor }}</strong>
+          <span class="stat__sub">{{ c.sub }}</span>
+        </span>
+      </button>
+    </li>
+  }
+</ul>
+
+<section class="panel">
+  <div class="filters-bar filters-bar--busca">
+    <div class="filters-bar__search">
+      <label class="search-box">
+        <mat-icon aria-hidden="true">search</mat-icon>
+        <input
+          type="search"
+          [formControl]="busca"
+          placeholder="Buscar por número, cliente, documento ou advogado..."
+          aria-label="Buscar processos no radar"
+        />
+      </label>
+    </div>
+    @if (filtrosAtivos() > 0) {
+      <button mat-button type="button" class="filter-clear" (click)="limpar()">Limpar</button>
+    }
+  </div>
+
+  <div class="filters-bar" role="group" aria-label="Filtrar por etapa do fluxo">
+    <span class="filters-bar__label">Etapa</span>
+    @for (e of etapas; track e.value) {
+      <button
+        type="button"
+        class="etapa-chip"
+        [class.etapa-chip--ativa]="etapa() === e.value"
+        [attr.aria-pressed]="etapa() === e.value"
+        (click)="filtrarEtapa(e.value)"
+      >
+        {{ e.label }}
+        <strong>{{ resumo()?.porEtapa?.[e.value] ?? 0 }}</strong>
+      </button>
+    }
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (erro(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="itens()" aria-label="Tabela do radar de processos">
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Número do Processo</th>
+        <td mat-cell *matCellDef="let i" class="col-numero">
+          <strong class="col-title">{{ cnj(i.numero) }}</strong>
+          <small class="col-sub">{{ i.areaJuridica }}</small>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let i">
+          <strong class="col-title">{{ i.clienteNome }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let i">{{ rotuloTipo(i.tipo) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="etapa">
+        <th mat-header-cell *matHeaderCellDef>Etapa atual</th>
+        <td mat-cell *matCellDef="let i">
+          <mat-select
+            class="etapa-select"
+            [value]="i.etapa"
+            (selectionChange)="mudarEtapa(i, $event.value)"
+            [attr.aria-label]="'Etapa do processo ' + cnj(i.numero)"
+          >
+            @for (e of etapas; track e.value) {
+              <mat-option [value]="e.value">{{ e.label }}</mat-option>
+            }
+          </mat-select>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="dias">
+        <th mat-header-cell *matHeaderCellDef>Dias na etapa</th>
+        <td mat-cell *matCellDef="let i">
+          <strong class="col-title">{{ i.diasNaEtapa }} {{ i.diasNaEtapa === 1 ? 'dia' : 'dias' }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="situacao">
+        <th mat-header-cell *matHeaderCellDef>Situação</th>
+        <td mat-cell *matCellDef="let i">
+          <span class="badge badge--{{ corFaixa(i.faixa) }}">{{ rotuloFaixa(i.faixa) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsavel">
+        <th mat-header-cell *matHeaderCellDef>Advogado</th>
+        <td mat-cell *matCellDef="let i">{{ i.advogadoNome }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunas; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunas"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="empty" [attr.colspan]="colunas.length">
+          @if (!carregando()) {
+            <mat-icon aria-hidden="true">search_off</mat-icon>
+            <strong>Nenhum processo ativo neste filtro</strong>
+            <span>Escolha outra etapa ou limpe os filtros.</span>
+          }
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <span class="table-footer__count">
+      Mostrando {{ total() === 0 ? 0 : pagina() * tamanho() + 1 }} -
+      {{ total() === 0 ? 0 : (pagina() + 1) * tamanho() > total() ? total() : (pagina() + 1) * tamanho() }} de
+      {{ total() }} processos
+    </span>
+
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="pagina()"
+      [pageSize]="tamanho()"
+      [pageSizeOptions]="[10, 25, 50]"
+      (page)="paginar($event)"
+      aria-label="Paginação do radar"
+      class="paginator-clean"
+    />
+  </div>
+</section>
