@@ -84,7 +84,10 @@ echo "authorized_keys atualizado: `$(grep -c -F ' $comentario' "`$f") linha(s) d
   if ($LASTEXITCODE -ne 0) { throw 'Falha ao gravar SSH_PRIVATE_KEY_HOMOLOG.' }
   gh secret set SSH_HOST --env homologacao --repo $Repo --body $VpsHost
   gh secret set SSH_USER --env homologacao --repo $Repo --body $VpsUser
-  (ssh-keyscan -H $VpsHost 2>$null) -join "`n" | gh secret set SSH_KNOWN_HOSTS --env homologacao --repo $Repo
+  # O valor vai por --body (e nao por pipe): no PowerShell 5.1 o pipe para o gh perde/estraga as linhas do ssh-keyscan.
+  $hostKeys = ((ssh-keyscan -t ed25519,rsa,ecdsa $VpsHost 2>$null) | Where-Object { $_ -and $_ -notmatch '^#' }) -join "`n"
+  if (-not $hostKeys) { throw "ssh-keyscan nao devolveu nenhuma chave de host para $VpsHost." }
+  gh secret set SSH_KNOWN_HOSTS --env homologacao --repo $Repo --body $hostKeys
   if ($LASTEXITCODE -ne 0) { throw 'Falha ao gravar SSH_KNOWN_HOSTS.' }
 
   # 4) Conferencia: so os NOMES (o GitHub nunca devolve os valores).
