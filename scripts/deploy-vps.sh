@@ -46,7 +46,7 @@ DB_NAME="${DB_NAME:-appdb}"
 
 sqlcmd_db() {
   docker exec -i -e P="$DB_PASSWORD" "$DB_CONTAINER" bash -c \
-    "/opt/mssql-tools18/bin/sqlcmd -C -b -S localhost -U sa -P \"\$P\" $*"
+    "/opt/mssql-tools18/bin/sqlcmd -C -b -S 127.0.0.1 -U sa -P \"\$P\" $*"
 }
 
 # Backup antes de qualquer script SQL novo (fica no volume do banco; mantém os 5 mais recentes).
