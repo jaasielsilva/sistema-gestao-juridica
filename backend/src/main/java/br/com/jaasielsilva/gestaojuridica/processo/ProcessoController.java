@@ -54,6 +54,12 @@ public class ProcessoController {
         return service.criar(request);
     }
 
+    /** Muda a etapa do fluxo (radar de processos). */
+    @PutMapping("/{id}/etapa")
+    public ProcessoResponse mudarEtapa(@PathVariable Long id, @Valid @RequestBody MudarEtapaRequest request) {
+        return service.mudarEtapa(id, request.etapa());
+    }
+
     @PutMapping("/{id}")
     public ProcessoResponse atualizar(@PathVariable Long id, @Valid @RequestBody ProcessoRequest request) {
         return service.atualizar(id, request);
