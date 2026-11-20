@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { APP_CONFIG } from '../../core/config/app-config';
 import { Page } from '../clientes/cliente.models';
-import { Processo, ProcessoFiltro, ProcessoRequest, ProcessoResumo } from './processo.models';
+import { EtapaProcesso, Processo, ProcessoFiltro, ProcessoRequest, ProcessoResumo } from './processo.models';
 
 const BASE = `${APP_CONFIG.apiBase}/processos`;
 
@@ -36,5 +36,10 @@ export class ProcessoService {
 
   atualizar(id: number, body: ProcessoRequest): Observable<Processo> {
     return this.http.put<Processo>(`${BASE}/${id}`, body);
+  }
+
+  /** Move o processo para outra etapa do fluxo (zera os dias na etapa do radar). */
+  mudarEtapa(id: number, etapa: EtapaProcesso): Observable<Processo> {
+    return this.http.put<Processo>(`${BASE}/${id}/etapa`, { etapa });
   }
 }

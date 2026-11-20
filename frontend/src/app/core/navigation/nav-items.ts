@@ -26,6 +26,9 @@ export const NAV_ITEMS: NavItem[] = [
       { label: 'Novo Processo', icon: 'add_box', route: '/processos/novo' },
     ],
   },
+  { label: 'Radar', icon: 'radar', route: '/radar' },
+  { label: 'Prazos', icon: 'event_available', route: '/prazos' },
+  { label: 'Tarefas', icon: 'view_kanban', route: '/tarefas' },
   {
     label: 'Integrações',
     icon: 'hub',

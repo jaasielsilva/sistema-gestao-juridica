@@ -1,0 +1,119 @@
+<nav class="breadcrumb" aria-label="Navegação estrutural">
+  <a routerLink="/inicio" class="breadcrumb__link">
+    <mat-icon class="breadcrumb__icon">home</mat-icon>
+    <span>Início</span>
+  </a>
+  <span class="breadcrumb__separator">›</span>
+  <span class="breadcrumb__current">Tarefas</span>
+</nav>
+
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>view_kanban</mat-icon></span>
+  <div class="page-header__text">
+    <h1>Tarefas</h1>
+    <p>Organize e acompanhe as tarefas do escritório. Arraste um cartão para outra coluna para movê-lo.</p>
+  </div>
+  <button mat-flat-button type="button" class="page-header__action" (click)="novaTarefa('A_FAZER')">
+    <mat-icon>add</mat-icon>
+    Nova tarefa
+  </button>
+</header>
+
+<div class="filters-bar filters-bar--solta" role="group" aria-label="Filtros do quadro">
+  <div class="filters-bar__search">
+    <label class="search-box">
+      <mat-icon aria-hidden="true">search</mat-icon>
+      <input
+        type="search"
+        [formControl]="busca"
+        placeholder="Buscar por título, descrição, cliente ou número do processo..."
+        aria-label="Buscar tarefas"
+      />
+    </label>
+  </div>
+
+  <mat-slide-toggle [ngModel]="soMinhas()" (ngModelChange)="alternarMinhas($event)">Só as minhas</mat-slide-toggle>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+    <mat-select
+      [ngModel]="responsavelId()"
+      (ngModelChange)="filtrarResponsavel($event)"
+      [disabled]="soMinhas()"
+      placeholder="Todos os responsáveis"
+    >
+      <mat-option [value]="null">Todos os responsáveis</mat-option>
+      @for (r of responsaveis(); track r.id) {
+        <mat-option [value]="r.id">{{ r.nome }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (filtrosAtivos() > 0) {
+    <button mat-button type="button" class="filter-clear" (click)="limparFiltros()">Limpar</button>
+  }
+</div>
+
+@if (carregando()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (erro()) {
+  <p class="form-error" role="alert">{{ erro() }}</p>
+}
+
+<div class="quadro" cdkDropListGroup>
+  @for (col of colunasDef; track col.value) {
+    <section class="coluna" [attr.aria-label]="col.label">
+      <header class="coluna__topo">
+        <mat-icon aria-hidden="true">{{ col.icon }}</mat-icon>
+        <h2>{{ col.label }}</h2>
+        <span class="contagem">{{ colunas()[col.value].length }}</span>
+        @if (col.value !== 'CONCLUIDA') {
+          <button mat-icon-button type="button" [attr.aria-label]="'Nova tarefa em ' + col.label" (click)="novaTarefa(col.value)">
+            <mat-icon>add</mat-icon>
+          </button>
+        }
+      </header>
+      <div
+        class="coluna__lista"
+        cdkDropList
+        [cdkDropListData]="colunas()[col.value]"
+        (cdkDropListDropped)="soltar($event, col.value)"
+      >
+        @for (t of colunas()[col.value]; track t.id) {
+          <article
+            class="cartao cartao--{{ t.prioridade }}"
+            cdkDrag
+            [cdkDragData]="t"
+            tabindex="0"
+            (click)="editar(t)"
+            (keydown.enter)="editar(t)"
+          >
+            <div class="cartao__titulo">{{ t.titulo }}</div>
+            <div class="cartao__meta">
+              <span class="prioridade prioridade--{{ t.prioridade }}">{{ rotuloPrioridade(t.prioridade) }}</span>
+              @if (t.prazo) {
+                <span class="prazo" [class.prazo--atrasado]="t.atrasada">
+                  <mat-icon aria-hidden="true">event</mat-icon>{{ data(t.prazo) }}
+                </span>
+              }
+            </div>
+            @if (t.processoNumero) {
+              <div class="cartao__processo">
+                <mat-icon aria-hidden="true">gavel</mat-icon>
+                {{ cnj(t.processoNumero) }}@if (t.clienteNome) { · {{ t.clienteNome }} }
+              </div>
+            }
+            @if (t.responsavelNome) {
+              <div class="cartao__responsavel">
+                <mat-icon aria-hidden="true">person</mat-icon>{{ t.responsavelNome }}
+              </div>
+            }
+          </article>
+        }
+        @if (!colunas()[col.value].length) {
+          <p class="vazio">Nenhuma tarefa</p>
+        }
+      </div>
+    </section>
+  }
+</div>

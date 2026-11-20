@@ -1,0 +1,201 @@
+<nav class="breadcrumb" aria-label="Navegação estrutural">
+  <a routerLink="/inicio" class="breadcrumb__link">
+    <mat-icon class="breadcrumb__icon">home</mat-icon>
+    <span>Início</span>
+  </a>
+  <span class="breadcrumb__separator">›</span>
+  <span class="breadcrumb__current">Prazos</span>
+</nav>
+
+<header class="page-header">
+  <span class="page-header__icon" aria-hidden="true"><mat-icon>event_available</mat-icon></span>
+  <div class="page-header__text">
+    <h1>Prazos</h1>
+    <p>Acompanhe e gerencie todos os prazos processuais do escritório.</p>
+  </div>
+  <button mat-flat-button type="button" class="page-header__action" (click)="novo()">
+    <mat-icon>add</mat-icon>
+    Novo prazo
+  </button>
+</header>
+
+<ul class="stats" aria-label="Resumo dos prazos">
+  @for (c of cartoes(); track c.rotulo) {
+    <li>
+      <button
+        type="button"
+        class="stat stat--clicavel"
+        [class.stat--ativo]="filtro().situacao === c.situacao"
+        [attr.aria-pressed]="filtro().situacao === c.situacao"
+        (click)="filtrarSituacao(c.situacao)"
+      >
+        <span class="stat__icon stat__icon--{{ c.cor }}" aria-hidden="true">
+          <mat-icon>{{ c.icone }}</mat-icon>
+        </span>
+        <span class="stat__text">
+          <small class="stat__label">{{ c.rotulo }}</small>
+          <strong class="stat__value">{{ c.valor }}</strong>
+        </span>
+      </button>
+    </li>
+  }
+</ul>
+
+<section class="panel">
+  <div class="filters-bar">
+    <div class="filters-bar__search">
+      <label class="search-box">
+        <mat-icon aria-hidden="true">search</mat-icon>
+        <input
+          type="search"
+          [formControl]="busca"
+          placeholder="Buscar por cliente, número do processo, tipo ou descrição..."
+          aria-label="Buscar prazos"
+        />
+      </label>
+    </div>
+
+    <div class="filters-bar__selects">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [ngModel]="filtro().situacao" (ngModelChange)="atualizarFiltro({ situacao: $event })" placeholder="Todas as situações">
+          <mat-option value="">Todas as situações</mat-option>
+          @for (s of situacoes; track s.value) {
+            <mat-option [value]="s.value">{{ s.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [ngModel]="filtro().dias" (ngModelChange)="atualizarFiltro({ dias: $event })" placeholder="Sem limite">
+          @for (p of periodos; track p.label) {
+            <mat-option [value]="p.value">{{ p.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [ngModel]="filtro().categoria" (ngModelChange)="atualizarFiltro({ categoria: $event })" placeholder="Todas as categorias">
+          <mat-option value="">Todas as categorias</mat-option>
+          @for (c of categorias(); track c.codigo) {
+            <mat-option [value]="c.codigo">{{ c.rotulo }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-select">
+        <mat-select [ngModel]="filtro().responsavelId" (ngModelChange)="atualizarFiltro({ responsavelId: $event })" placeholder="Todos os responsáveis">
+          <mat-option value="">Todos os responsáveis</mat-option>
+          @for (r of responsaveis(); track r.id) {
+            <mat-option [value]="r.id">{{ r.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (filtrosAtivos() > 0) {
+        <button mat-button type="button" class="filter-clear" (click)="limpar()">Limpar</button>
+      }
+    </div>
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (erro(); as message) {
+    <p class="form-error" role="alert">{{ message }}</p>
+  }
+
+  <div class="table-wrap">
+    <table mat-table [dataSource]="prazos()" aria-label="Tabela de prazos processuais">
+      <ng-container matColumnDef="vencimento">
+        <th mat-header-cell *matHeaderCellDef>Vencimento</th>
+        <td mat-cell *matCellDef="let p" class="col-numero">{{ data(p.dataVencimento) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="situacao">
+        <th mat-header-cell *matHeaderCellDef>Situação</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="badge badge--{{ corSituacao(p.situacao) }}">{{ rotuloSituacao(p.situacao) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef>Cliente</th>
+        <td mat-cell *matCellDef="let p">
+          <strong class="col-title">{{ p.clienteNome }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="processo">
+        <th mat-header-cell *matHeaderCellDef>Processo</th>
+        <td mat-cell *matCellDef="let p" class="col-numero">{{ cnj(p.processoNumero) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tipo">
+        <th mat-header-cell *matHeaderCellDef>Tipo de prazo</th>
+        <td mat-cell *matCellDef="let p">
+          <span class="col-title">{{ p.tipoRotulo }}</span>
+          <small class="col-sub">{{ p.descricao || p.categoriaRotulo }}</small>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="responsavel">
+        <th mat-header-cell *matHeaderCellDef>Responsável</th>
+        <td mat-cell *matCellDef="let p">{{ p.responsavelNome ?? '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef class="col-actions">Ações</th>
+        <td mat-cell *matCellDef="let p" class="col-actions">
+          @if (p.status === 'ABERTO') {
+            <button mat-icon-button type="button" matTooltip="Marcar como cumprido" aria-label="Marcar como cumprido" (click)="cumprir(p)">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+          } @else {
+            <button mat-icon-button type="button" matTooltip="Reabrir prazo" aria-label="Reabrir prazo" (click)="reabrir(p)">
+              <mat-icon>undo</mat-icon>
+            </button>
+          }
+          <button mat-icon-button type="button" matTooltip="Editar" aria-label="Editar prazo" (click)="editar(p)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          @if (auth.isAdmin()) {
+            <button mat-icon-button type="button" matTooltip="Excluir" aria-label="Excluir prazo" (click)="excluir(p)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunas; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunas"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="empty" [attr.colspan]="colunas.length">
+          @if (!carregando()) {
+            <mat-icon aria-hidden="true">search_off</mat-icon>
+            <strong>Nenhum prazo encontrado</strong>
+            <span>Ajuste os filtros ou cadastre um novo prazo.</span>
+          }
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <span class="table-footer__count">
+      Mostrando {{ total() === 0 ? 0 : filtro().page * filtro().size + 1 }} -
+      {{ total() === 0 ? 0 : (filtro().page + 1) * filtro().size > total() ? total() : (filtro().page + 1) * filtro().size }} de
+      {{ total() }} prazos
+    </span>
+
+    <mat-paginator
+      [length]="total()"
+      [pageIndex]="filtro().page"
+      [pageSize]="filtro().size"
+      [pageSizeOptions]="[10, 25, 50]"
+      (page)="paginar($event)"
+      aria-label="Paginação de prazos"
+      class="paginator-clean"
+    />
+  </div>
+</section>

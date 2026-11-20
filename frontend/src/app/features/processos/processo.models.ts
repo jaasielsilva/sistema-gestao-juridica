@@ -59,7 +59,32 @@ export interface Processo {
   criadoEm: string;
   atualizadoEm: string;
   frequenciaMonitoramento: 'MENSAL' | 'SEMANAL' | 'DIARIA' | null;
+  etapa: EtapaProcesso;
+  etapaRotulo: string;
+  etapaAtualizadaEm: string;
 }
+
+/** Etapas do fluxo do escritório (radar de processos), na ordem do fluxo. Igual ao enum EtapaProcesso do backend. */
+export type EtapaProcesso =
+  | 'CONTATO'
+  | 'ANALISE'
+  | 'ELABORACAO_PECA'
+  | 'PROTOCOLADO'
+  | 'AGUARDANDO_DECISAO'
+  | 'RECURSO'
+  | 'CUMPRIMENTO'
+  | 'CONCLUSAO';
+
+export const ETAPAS_PROCESSO: { value: EtapaProcesso; label: string }[] = [
+  { value: 'CONTATO', label: 'Contato' },
+  { value: 'ANALISE', label: 'Análise' },
+  { value: 'ELABORACAO_PECA', label: 'Elaboração de peça' },
+  { value: 'PROTOCOLADO', label: 'Protocolado' },
+  { value: 'AGUARDANDO_DECISAO', label: 'Aguardando decisão' },
+  { value: 'RECURSO', label: 'Recurso' },
+  { value: 'CUMPRIMENTO', label: 'Cumprimento' },
+  { value: 'CONCLUSAO', label: 'Conclusão' },
+];
 
 export interface ProcessoRequest {
   numero: string;

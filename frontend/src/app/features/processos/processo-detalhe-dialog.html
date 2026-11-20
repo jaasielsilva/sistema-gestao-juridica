@@ -61,7 +61,7 @@
     </div>
 
     <div class="section">
-      <h3 class="section__title"><mat-icon>event</mat-icon> Prazos e Situação</h3>
+      <h3 class="section__title"><mat-icon>event</mat-icon> Prazos e Etapa</h3>
       <div class="grid">
         <div class="field">
           <span class="field__label">Próximo Prazo</span>
@@ -74,7 +74,44 @@
           <span class="field__label">Descrição do Prazo</span>
           <span class="field__value">{{ data.proximoPrazoDescricao || (data.situacao === 'ENCERRADO' ? 'Processo encerrado' : '—') }}</span>
         </div>
+        <div class="field">
+          <span class="field__label">Etapa do fluxo</span>
+          <mat-select class="etapa-select" [value]="data.etapa" (selectionChange)="mudarEtapa($event.value)" aria-label="Etapa do processo">
+            @for (e of etapas; track e.value) {
+              <mat-option [value]="e.value">{{ e.label }}</mat-option>
+            }
+          </mat-select>
+        </div>
       </div>
+
+      @if (prazosCarregando()) {
+        <p class="field__text">Carregando prazos…</p>
+      } @else if (prazos().length === 0) {
+        <p class="field__text">Nenhum prazo cadastrado para este processo.</p>
+      } @else {
+        <ul class="prazos-lista">
+          @for (p of prazos(); track p.id) {
+            <li>
+              <span class="prazos-lista__data">{{ dataBr(p.dataVencimento) }}</span>
+              <span class="chip {{ cssSituacaoPrazo(p.situacao) }}">{{ rotuloSituacaoPrazo(p.situacao) }}</span>
+              <span class="prazos-lista__descricao">{{ p.tipoRotulo }}@if (p.descricao) { — {{ p.descricao }} }</span>
+              @if (p.status === 'ABERTO') {
+                <button mat-icon-button type="button" aria-label="Marcar prazo como cumprido" (click)="cumprirPrazo(p)">
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+              } @else {
+                <button mat-icon-button type="button" aria-label="Reabrir prazo" (click)="reabrirPrazo(p)">
+                  <mat-icon>undo</mat-icon>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+      @if (prazosErro()) {
+        <p class="form-error">{{ prazosErro() }}</p>
+      }
+      <button mat-button type="button" (click)="novoPrazo()"><mat-icon>add</mat-icon> Novo prazo</button>
     </div>
 
     <div class="section">
