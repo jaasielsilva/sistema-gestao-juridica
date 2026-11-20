@@ -14,6 +14,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,10 +26,22 @@ public class ProcessoService {
 
     private final ProcessoRepository processos;
     private final ClienteRepository clientes;
+    private final Clock clock;
 
-    public ProcessoService(ProcessoRepository processos, ClienteRepository clientes) {
+    public ProcessoService(ProcessoRepository processos, ClienteRepository clientes, Clock clock) {
         this.processos = processos;
         this.clientes = clientes;
+        this.clock = clock;
+    }
+
+    /** Move o processo para outra etapa do fluxo (zera os dias na etapa do radar). Repetir a etapa atual nao muda nada. */
+    @Transactional
+    public ProcessoResponse mudarEtapa(Long id, EtapaProcesso etapa) {
+        Processo p = obter(id);
+        if (p.mudarEtapa(etapa, Instant.now(clock))) {
+            processos.saveAndFlush(p);
+        }
+        return ProcessoResponse.of(p);
     }
 
     @Transactional(readOnly = true)

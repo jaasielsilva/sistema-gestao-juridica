@@ -355,6 +355,32 @@ nosso. Ver [manual de uso](manual-uso-escavador.md) e [ADR 0007](adr/0007-integr
 para detalhes de preço, segurança e fluxo completo. Não testado em produção com callback real
 ainda (pendente: confirmar o payload real do primeiro evento e ajustar o parser se necessário).
 
+## 16.2 Prazos, radar de processos e tarefas (2026-11-20)
+
+Implementados na branch `feat/prazos-radar-tarefas` (ADR 0008; scripts `017`–`019`). Em produção só depois do fluxo
+PR → `dev` → homologação → `main`.
+
+- **Prazos** (`/prazos`): vários por processo, catálogo de ~40 tipos, situação calculada (hoje/próximo/vencido/cumprido),
+  responsável, baixa e reabertura; mantém `processo.proximo_prazo` sincronizado.
+- **Radar** (`/radar`): processos ativos por etapa e por dias parados (OK ≤ 3, atenção 4–7, travado ≥ 8); etapa muda
+  na própria tela.
+- **Tarefas** (`/tarefas`): quadro Kanban com arrastar e soltar, ligado a processo e responsável.
+- API: `/api/v1/prazos`, `/api/v1/radar`, `/api/v1/tarefas`, `PUT /api/v1/processos/{id}/etapa`, `GET /api/v1/usuarios/responsaveis`.
+- **Verificado (2026-11-20):** `mvn verify` com SQL Server real (Testcontainers) passou: 128 testes, 0 falhas, incluindo
+  `PrazoIntegrationTest` (11), `RadarIntegrationTest` (8) e `TarefaIntegrationTest` (14), cada um com isolamento entre
+  dois tenants; os scripts `017`–`019` aplicaram em banco vazio. Frontend: 50 testes e `ng build` ok.
+- **Ainda não verificado:** os scripts `017`–`019` em banco com dados (o `018` preenche `etapa_atualizada_em` nas
+  linhas existentes de `processo`; validar em homologação, que tem a carga grande) e as telas novas no navegador.
+- **Busca por texto** (parâmetro `busca`, sem diferenciar maiúsculas nem acentos; `%` e `_` são literais): prazos
+  (cliente, nº do processo, tipo, descrição), radar (nº, cliente, documento, advogado) e tarefas (título, descrição,
+  cliente, nº do processo). Telas de lista seguem o visual de Processos (`shared/_list-page.scss`, `_page-chrome.scss`).
+- **Ficha do processo:** mostra os prazos do processo (cumprir/reabrir/novo prazo) e permite trocar a etapa.
+- **Sino do cabeçalho:** deixou de ser um "3" fixo; mostra prazos vencidos + vencendo hoje do escritório (atualiza ao
+  abrir, a cada 5 min e a cada navegação) e leva a `/prazos`. Parâmetro de URL inválido (ex.: `?faixa=XYZ`) agora
+  responde 400 em vez de 500 (`GlobalExceptionHandler`).
+- **Pendências:** aviso por e-mail de prazo vencendo, etapas configuráveis por escritório, ligar movimentação do
+  Escavador a sugestão de prazo.
+
 ## 16. Estrutura do repositório
 
 ```

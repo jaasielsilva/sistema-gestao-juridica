@@ -1,0 +1,145 @@
+// Visual padrao das telas de lista (modelo: Processos): moldura (migalhas, cabecalho com icone, filtros, busca) +
+// cartoes de resumo, painel, tabela com cabecalho fixo OPACO e rodape com contagem + paginacao.
+// Uso nos componentes:  @use '../../shared/list-page';
+// A tela ocupa a altura da janela (host `fill-page`) e so a tabela rola por dentro.
+
+@use './page-chrome';
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+// Cartao de resumo. Quando clicavel e um <button class="stat">: filtra a lista pelo valor do cartao.
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  box-sizing: border-box;
+
+  &--clicavel { cursor: pointer; &:hover { border-color: var(--brand-accent); } }
+  &--ativo { border-color: var(--brand-accent); outline: 2px solid color-mix(in srgb, var(--brand-accent) 25%, transparent); }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+
+    mat-icon { font-size: 24px; width: 24px; height: 24px; }
+
+    &--verde { background: #e6f4ea; color: #00684a; }
+    &--azul { background: #e0f2fe; color: #0284c7; }
+    &--ambar { background: #fef3c7; color: #d97706; }
+    &--roxo { background: #f3e8ff; color: #9333ea; }
+    &--vermelho { background: #fee2e2; color: #dc2626; }
+  }
+
+  &__text { display: flex; flex-direction: column; min-width: 0; }
+  &__label { font-size: 12px; font-weight: 500; color: var(--mat-sys-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  &__value { font-size: 26px; font-weight: 700; color: var(--mat-sys-on-surface); line-height: 1.2; margin-top: 2px; }
+  &__sub { font-size: 11px; color: var(--mat-sys-on-surface-variant); margin-top: 4px; }
+}
+
+.panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 280px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-lowest);
+}
+
+.table-wrap { flex: 1 1 0; min-height: 0; overflow: auto; }
+
+table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+// Cabecalho fixo com fundo OPACO: sem isso as linhas aparecem por baixo dele ao rolar.
+th.mat-mdc-header-cell {
+  background: var(--mat-sys-surface-container-lowest);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mat-sys-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 14px;
+}
+
+td.mat-mdc-cell {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 13px;
+}
+
+.col-title { display: block; font-size: 13px; font-weight: 600; color: var(--mat-sys-on-surface); }
+.col-sub { display: block; font-size: 11.5px; color: var(--mat-sys-on-surface-variant); margin-top: 2px; }
+.col-numero { white-space: nowrap; }
+.col-actions { white-space: nowrap; text-align: right; width: 150px; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--ok { background: #ecfdf5; color: #047857; }
+  &--azul { background: #eff6ff; color: #1d4ed8; }
+  &--ambar { background: #fffbeb; color: #b45309; }
+  &--vermelho { background: #fef2f2; color: #b91c1c; }
+  &--cinza { background: #f1f5f9; color: #475569; }
+}
+
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  mat-icon { display: block; margin: 0 auto 10px; font-size: 40px; width: 40px; height: 40px; }
+  strong { display: block; font-size: 15px; color: var(--mat-sys-on-surface); }
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  &__count { font-size: 12.5px; color: var(--mat-sys-on-surface-variant); }
+}
+
+.paginator-clean {
+  background: transparent !important;
+  ::ng-deep .mat-mdc-paginator-range-label { display: none; }
+}
+
+@media (max-width: 1200px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 599.98px) {
+  .stats { grid-template-columns: 1fr; }
+}
