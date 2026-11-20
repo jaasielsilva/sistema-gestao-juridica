@@ -53,11 +53,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
       MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?defina MFA_ENCRYPTION_KEY no .env}
       ESCAVADOR_ENCRYPTION_KEY: ${ESCAVADOR_ENCRYPTION_KEY:?defina ESCAVADOR_ENCRYPTION_KEY no .env}
-      APP_BASE_URL: https://erpcorporativo.cloud
+      # Origem publica do ambiente (links dos e-mails e CORS). Producao: erpcorporativo.cloud; a homologacao define
+      # SITE_URL/SITE_CORS_ORIGINS no deploy-vps.sh. Sem isto o navegador da homologacao era recusado (403) no login.
+      APP_BASE_URL: ${SITE_URL:-https://erpcorporativo.cloud}
       REGISTRATION_ENABLED: "false"
       COOKIE_SECURE: "true"
       FORWARD_HEADERS_STRATEGY: native
-      CORS_ALLOWED_ORIGINS: https://erpcorporativo.cloud,https://www.erpcorporativo.cloud
+      CORS_ALLOWED_ORIGINS: ${SITE_CORS_ORIGINS:-https://erpcorporativo.cloud,https://www.erpcorporativo.cloud}
       SWAGGER_ENABLED: "false"
       MAIL_FROM: ${MAIL_FROM:-no-reply@erpcorporativo.cloud}
     env_file:

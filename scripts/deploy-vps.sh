@@ -21,14 +21,19 @@ case "$APP_DIR" in
     BRANCH="${BRANCH:-dev}"
     FRONTEND_PORT="${FRONTEND_PORT:-3011}"
     DB_HOST_PORT="${DB_HOST_PORT:-1434}"
+    SITE_URL="${SITE_URL:-https://homolog.erpcorporativo.cloud}"
+    SITE_CORS_ORIGINS="${SITE_CORS_ORIGINS:-https://homolog.erpcorporativo.cloud}"
     ;;
   *)
     BRANCH="${BRANCH:-main}"
     FRONTEND_PORT="${FRONTEND_PORT:-3010}"
     DB_HOST_PORT="${DB_HOST_PORT:-1433}"
+    SITE_URL="${SITE_URL:-https://erpcorporativo.cloud}"
+    SITE_CORS_ORIGINS="${SITE_CORS_ORIGINS:-https://erpcorporativo.cloud,https://www.erpcorporativo.cloud}"
     ;;
 esac
-export FRONTEND_PORT DB_HOST_PORT
+# Origem publica do ambiente: o compose le SITE_URL (links dos e-mails) e SITE_CORS_ORIGINS (CORS do navegador).
+export FRONTEND_PORT DB_HOST_PORT SITE_URL SITE_CORS_ORIGINS
 SHA="${1:-${SSH_ORIGINAL_COMMAND:-}}"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "SHA invalido: informe os 40 caracteres do commit." >&2; exit 2; }
 
