@@ -86,7 +86,12 @@ echo "authorized_keys atualizado: `$(grep -c -F ' $comentario' "`$f") linha(s) d
   gh secret set SSH_USER --env homologacao --repo $Repo --body $VpsUser
   # O valor vai por --body (e nao por pipe): no PowerShell 5.1 o pipe para o gh perde/estraga as linhas do ssh-keyscan.
   $hostKeys = ((ssh-keyscan -t ed25519,rsa,ecdsa $VpsHost 2>$null) | Where-Object { $_ -and $_ -notmatch '^#' }) -join "`n"
-  if (-not $hostKeys) { throw "ssh-keyscan nao devolveu nenhuma chave de host para $VpsHost." }
+  if (-not $hostKeys) {
+    # O ssh-keyscan do OpenSSH do Windows e antigo e nao negocia o KEX moderno da VPS (sntrup761x25519): devolve vazio.
+    # O ssh, porem, ja conectou na etapa anterior, entao a chave do servidor esta no known_hosts de quem roda o script.
+    $hostKeys = ((ssh-keygen -F $VpsHost 2>$null) | Where-Object { $_ -and $_ -notmatch '^#' }) -join "`n"
+  }
+  if (-not $hostKeys) { throw "Nao consegui obter a chave de host de $VpsHost (ssh-keyscan e known_hosts vazios)." }
   gh secret set SSH_KNOWN_HOSTS --env homologacao --repo $Repo --body $hostKeys
   if ($LASTEXITCODE -ne 0) { throw 'Falha ao gravar SSH_KNOWN_HOSTS.' }
 
