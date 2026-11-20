@@ -45,6 +45,23 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "Publicando $sha em homologacao" >> "$GITHUB_STEP_SUMMARY"
 
+      # Sem isto, secret ausente vira um "usage" do ssh (exit 255), impossivel de entender. Falha cedo e diz o que falta.
+      - name: Conferir secrets do ambiente homologacao
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_HOMOLOG }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          faltando=""
+          for v in SSH_PRIVATE_KEY SSH_KNOWN_HOSTS SSH_HOST SSH_USER; do
+            [ -n "${!v}" ] || faltando="$faltando $v"
+          done
+          if [ -n "$faltando" ]; then
+            echo "::error title=Secrets de homologacao ausentes::Faltam no environment 'homologacao':$faltando (SSH_PRIVATE_KEY vem de SSH_PRIVATE_KEY_HOMOLOG). Rode scripts/configurar-homologacao.ps1."
+            exit 1
+          fi
+
       - name: Preparar SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_HOMOLOG }}
