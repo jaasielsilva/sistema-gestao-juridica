@@ -10,7 +10,7 @@ services:
       MSSQL_SA_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
     # Só loopback: acesso administrativo por túnel SSH (nunca publicar em 0.0.0.0).
     ports:
-      - "127.0.0.1:1433:1433"
+      - "127.0.0.1:${DB_HOST_PORT:-1433}:1433"
     volumes:
       - dbdata:/var/opt/mssql
     healthcheck:
@@ -73,7 +73,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "127.0.0.1:3010:80"
+      - "127.0.0.1:${FRONTEND_PORT:-3010}:80"
     volumes:
       - ./frontend/nginx/locations.conf:/etc/nginx/snippets/locations.conf:ro
       - ./frontend/nginx/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
